@@ -1,0 +1,69 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## 项目定位
+
+{project_description}
+
+## 核心原则
+
+| 角色 | 职责 |
+|------|------|
+| **团队成员** | 提需求、做评审、反馈意见 |
+| **Claude Code** | 需求编写、技术方案、计划生成、开发执行、测试用例、维基更新 |
+
+## 文档结构
+
+```
+.claude/
+├── agents/                     # 使用全局配置 (~/.claude/agents/)
+├── skills/                     # 使用全局配置 (~/.claude/skills/)
+└── project-config.md           # 项目配置
+
+docs/
+├── 迭代/{需求名称}/
+│   ├── P1-需求文档.md
+│   ├── P3-技术方案.md
+│   ├── P5-编码计划.md
+│   ├── P7-测试用例.md
+│   ├── P11-测试报告.md
+│   ├── 流程状态.md
+│   └── stories/
+└── Wiki/
+    ├── 用户文档/
+    ├── 开发文档/
+    └── 接口文档/
+```
+
+## 技术栈
+
+| 类型 | 技术 |
+|------|------|
+| 语言 | {language} |
+| 框架 | {framework} |
+| 测试 | {test_framework} |
+
+## 常用命令
+
+| 命令 | 说明 |
+|------|------|
+| `{install_cmd}` | 安装依赖 |
+| `{build_cmd}` | 构建 |
+| `{test_cmd}` | 运行测试 |
+| `{lint_cmd}` | 代码检查 |
+
+## Git 规范
+
+| 配置 | 值 |
+|------|-----|
+| 主分支 | {main_branch} |
+| 功能分支 | feature/* |
+| 修复分支 | fix/* |
+| 提交格式 | conventional |
+
+## 快速开始
+
+1. 运行 `/ideal-requirement` 开始新需求
+2. 查看 `docs/项目状态.md` 了解当前进展
+3. 查看 `.claude/project-config.md` 了解项目配置
