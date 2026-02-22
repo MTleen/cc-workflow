@@ -1,0 +1,45 @@
+# =============================================================================
+# CC-Workflow Worktree Configuration
+# =============================================================================
+# This file configures git worktree management for isolated development
+# environments. Each requirement gets its own worktree for context isolation.
+#
+# Usage:
+#   Create worktree: ideal worktree create <requirement-name>
+#   Remove worktree: ideal worktree remove <requirement-name>
+# =============================================================================
+
+# Worktree storage directory (relative to project root)
+# All worktrees will be created as subdirectories under this path
+# Example: ../ideal-worktrees/2026-02-22-user-auth/
+worktree_dir: ../ideal-worktrees
+
+# Environment files to copy into new worktrees
+# These files are copied from the main repository to each new worktree
+# Use this for: .env files, IDE settings, developer credentials, etc.
+copy:
+  - .env
+  - .ideal/.developer
+
+# Initialization commands to run after worktree creation
+# These commands are executed in the new worktree directory
+# Use this for: dependency installation, build setup, etc.
+post_create:
+  - pnpm install --frozen-lockfile
+
+# Verification commands for Ralph Loop (code quality checks)
+# These commands are run to verify code quality before committing
+# Used by check Agent during the implement-check-debug cycle
+verify:
+  - pnpm lint
+  - pnpm typecheck
+  - pnpm test
+
+# =============================================================================
+# Configuration Notes:
+# =============================================================================
+# 1. worktree_dir: Should be outside the main repository to avoid conflicts
+# 2. copy: Files must exist in the main repo or will be skipped with a warning
+# 3. post_create: Commands run sequentially; failure stops the process
+# 4. verify: Commands should exit with 0 on success, non-zero on failure
+# =============================================================================
