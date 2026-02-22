@@ -20,7 +20,7 @@
 
 ## Agent 清单
 
-### 原有 Agent（阶段流程角色）
+### 阶段流程角色（6 个）
 
 | Agent | 角色 | 职责 | 被调用阶段 |
 |-------|------|------|-----------|
@@ -31,7 +31,7 @@
 | [qa](qa.md) | 测试工程师 | 测试设计、用例编写、缺陷跟踪 | P7, P11 |
 | [tech-writer](tech-writer.md) | 技术文档撰写 | 文档编写、知识整理 | P15 |
 
-### 新增 Agent（细粒度角色）
+### 细粒度执行角色（4 个）
 
 | Agent | 角色 | 职责 | 禁止操作 |
 |-------|------|------|----------|
@@ -39,6 +39,8 @@
 | [check](check.md) | 代码检查工程师 | 代码检查、自我修复、验证 | - |
 | [debug](debug.md) | 调试工程师 | 深度调试、根因分析 | - |
 | [research](research.md) | 研究分析师 | 纯研究、不修改文件 | 任何文件修改 |
+
+**总计**：10 个 Agent（6 个阶段流程角色 + 4 个细粒度执行角色）
 
 ## Agent 复用关系
 
@@ -91,7 +93,56 @@ tech-writer─┬──→ P15 维基更新
 
 ## 如何在 Skill 中调用 Agent
 
-在 SKILL.md 中使用以下语法：
+### 新方式：Task 工具调用（推荐）
+
+在 SKILL.md 中使用 Task 工具调用子代理：
+
+```markdown
+## Agents
+
+本 Skill 通过 Task 工具调用以下子代理：
+
+| Agent | 角色 | 用途 |
+|-------|------|------|
+| implement | 代码实现工程师 | 代码实现、TDD 开发 |
+
+**调用方式**：通过 Task 工具调用，Hook 自动注入 jsonl 配置的上下文。
+
+## Workflow
+
+### Step X: 调用 Agent
+
+```
+Task(
+    subagent_type: "implement",
+    prompt: "实现 XXX 功能，上下文已自动注入",
+    model: "opus"
+)
+```
+
+Hook 会自动注入 jsonl 配置的上下文。
+```
+
+### Hook 自动注入
+
+通过 jsonl 配置，Hook 会自动为 Task 调用注入上下文：
+
+```json
+{
+  "subagent_type": "implement",
+  "context_files": [
+    "docs/迭代/{需求}/stories/current.md",
+    ".claude/agents/implement.md"
+  ],
+  "context_dirs": [
+    "src/"
+  ]
+}
+```
+
+### 旧方式：注释扮演（已废弃）
+
+~~在 SKILL.md 中使用以下语法~~：
 
 ```markdown
 <!-- AGENT: {agent_name} -->
@@ -104,6 +155,8 @@ tech-writer─┬──→ P15 维基更新
 ...
 <!-- END AGENT -->
 ```
+
+**注意**：此方式已废弃，所有 Skill 应迁移到 Task 工具调用方式。
 
 ## Agent 文件格式
 
@@ -135,16 +188,60 @@ skills: [skill1, skill2]
 需要避免的错误
 ```
 
+## Skill 与 Agent 映射
+
+| Skill | 调用方式 | 使用 Agent |
+|-------|----------|-----------|
+| ideal-requirement | Task(subagent_type="pm") | pm, analyst |
+| ideal-dev-solution | Task(subagent_type="architect") | architect |
+| ideal-dev-plan | Task(subagent_type="architect") | architect, pm |
+| ideal-test-case | Task(subagent_type="qa") | qa |
+| ideal-dev-exec | Task(subagent_type="implement") | implement, check, debug |
+| ideal-code-review | Task(subagent_type="check") | check |
+| ideal-test-exec | Task(subagent_type="qa") | qa, debug |
+| ideal-wiki | Task(subagent_type="tech-writer") | tech-writer, dev, qa |
+| ideal-debugging | Task(subagent_type="debug") | debug |
+
 ## 扩展指南
 
 ### 添加新 Agent
 
 1. 在本目录创建 `{name}.md` 文件
 2. 按照标准格式定义角色
-3. 在相关 Skill 中引用
+3. 在相关 Skill 中通过 Task 工具引用
 
 ### 修改现有 Agent
 
 1. 直接编辑对应的 `.md` 文件
 2. 确保修改不影响已引用的 Skills
 3. 更新 version 字段
+
+### 创建 jsonl 配置
+
+为每个 Skill 创建对应的 jsonl 配置文件，定义 Task 调用时注入的上下文：
+
+```json
+{
+  "skill": "ideal-dev-exec",
+  "subagents": {
+    "implement": {
+      "context_files": [
+        "docs/迭代/{需求}/stories/current.md",
+        ".claude/agents/implement.md"
+      ],
+      "context_dirs": ["src/", "tests/"]
+    },
+    "check": {
+      "context_files": [
+        "docs/迭代/{需求}/P5-编码计划.md",
+        ".claude/agents/check.md"
+      ]
+    },
+    "debug": {
+      "context_files": [
+        ".claude/agents/debug.md"
+      ]
+    }
+  }
+}
+```

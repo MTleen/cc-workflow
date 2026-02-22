@@ -1,7 +1,7 @@
 ---
 name: ideal-debugging
 description: Use when encountering bugs, test failures, or unexpected behavior. Implements systematic debugging with root cause analysis before any fixes.
-agents: [dev]
+agents: [debug]
 ---
 
 # ideal-debugging（系统化调试）
@@ -14,13 +14,21 @@ agents: [dev]
 
 ## Agents
 
-本 Skill 调用以下角色能力：
+本 Skill 通过 Task 工具调用以下子代理：
 
 | Agent | 角色 | 用途 |
 |-------|------|------|
-| dev | 开发工程师 | 根因分析、TDD 修复 |
+| debug | 调试工程师 | 根因分析、TDD 修复 |
 
-请先阅读：`.claude/agents/dev.md`
+**调用方式**：通过 Task 工具调用，Hook 自动注入 jsonl 配置的上下文。
+
+```markdown
+Task(
+    subagent_type: "debug",
+    prompt: "执行系统化调试：根因调查 → 模式分析 → 假设测试 → TDD 修复",
+    model: "opus"
+)
+```
 
 ## HARD GATE
 
@@ -320,11 +328,11 @@ git log -p -- path/to/file
 
 | 错误 | 正确做法 | HARD GATE |
 |------|----------|-----------|
-| 直接修改代码 | 先完成 Phase 1 | ⚠️ 必须调查根因 |
+| 直接修改代码 | 先完成 Phase 1 | 必须调查根因 |
 | 猜测修复 | 形成假设并测试 | - |
 | 修改多处 | 单一最小修复 | - |
 | 忽略红旗 | 3 次失败后质疑架构 | - |
-| 跳过测试 | 必须有失败测试 | ⚠️ TDD 铁律 |
+| 跳过测试 | 必须有失败测试 | TDD 铁律 |
 
 ---
 
@@ -337,7 +345,7 @@ git log -p -- path/to/file
 
 遇到任务失败时：
 1. 暂停批次
-2. 调用 ideal-debugging
+2. 调用 debug 子代理
 3. 等待调试完成
 4. 根据调试结果继续或等待介入
 ```

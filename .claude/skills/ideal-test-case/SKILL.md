@@ -12,13 +12,21 @@ agents: [qa]
 
 ## Agents
 
-本 Skill 调用以下角色能力：
+本 Skill 通过 Task 工具调用以下子代理：
 
 | Agent | 角色 | 用途 |
 |-------|------|------|
 | qa | 测试工程师 | 测试设计、用例编写 |
 
-请先阅读：`.claude/agents/qa.md`
+**调用方式**：通过 Task 工具调用，Hook 自动注入 jsonl 配置的上下文。
+
+```markdown
+Task(
+    subagent_type: "qa",
+    prompt: "基于需求文档和编码计划生成测试用例，覆盖功能、边界、异常场景",
+    model: "opus"
+)
+```
 
 ## When to Use
 
@@ -124,17 +132,47 @@ digraph testcase_workflow {
 
 ### Step 3: 生成功能测试用例
 
+**调用 qa 子代理**：
+
+```
+Task(
+    subagent_type: "qa",
+    prompt: "生成功能测试用例，覆盖主流程和分支流程",
+    model: "opus"
+)
+```
+
 1. 每个功能点至少一个正向用例
 2. 覆盖主流程和分支流程
 3. 确保可验证
 
 ### Step 4: 生成边界测试用例
 
+**调用 qa 子代理**：
+
+```
+Task(
+    subagent_type: "qa",
+    prompt: "生成边界测试用例，覆盖输入边界、状态边界、流程边界",
+    model: "opus"
+)
+```
+
 1. 输入边界（空值、最大值、最小值）
 2. 状态边界（初始、中间、结束）
 3. 流程边界（开始、进行中、完成）
 
 ### Step 5: 生成异常测试用例
+
+**调用 qa 子代理**：
+
+```
+Task(
+    subagent_type: "qa",
+    prompt: "生成异常测试用例，覆盖错误输入、异常状态、外部错误",
+    model: "opus"
+)
+```
 
 1. 错误输入（无效数据、格式错误）
 2. 异常状态（权限不足、资源不存在）

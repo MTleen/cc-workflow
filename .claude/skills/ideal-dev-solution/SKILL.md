@@ -12,13 +12,21 @@ agents: [architect]
 
 ## Agents
 
-本 Skill 调用以下角色能力：
+本 Skill 通过 Task 工具调用以下子代理：
 
 | Agent | 角色 | 用途 |
 |-------|------|------|
 | architect | 架构师 | 系统架构设计、技术选型、风险评估 |
 
-请先阅读：`.claude/agents/architect.md`
+**调用方式**：通过 Task 工具调用，Hook 自动注入 jsonl 配置的上下文。
+
+```markdown
+Task(
+    subagent_type: "architect",
+    prompt: "基于需求文档生成技术方案，包含架构设计、技术选型、数据模型",
+    model: "opus"
+)
+```
 
 ## When to Use
 
@@ -116,36 +124,54 @@ digraph solution_workflow {
 
 ### Step 2: 分析需求
 
-<!-- AGENT: architect -->
-你现在扮演架构师角色。请阅读 `.claude/agents/architect.md` 了解：
-- 角色定义：需求驱动、简单优先、权衡取舍
-- 思维方式：先理解业务需求，再设计技术方案
-- 输出规范：技术方案文档结构、ADR 格式
+**调用 architect 子代理**：
+
+```
+Task(
+    subagent_type: "architect",
+    prompt: "分析需求文档，进行功能分解、依赖识别、优先级排序",
+    model: "opus"
+)
+```
 
 分析需求时：
 1. **功能分解**：将功能需求分解为模块
 2. **依赖识别**：识别模块间的依赖关系
 3. **优先级排序**：根据业务价值确定实现顺序
-<!-- END AGENT -->
 
 ### Step 3: 设计架构
 
-<!-- AGENT: architect -->
-以架构师视角设计系统架构：
+**调用 architect 子代理**：
+
+```
+Task(
+    subagent_type: "architect",
+    prompt: "设计系统架构，选择架构模式、划分组件、绘制架构图",
+    model: "opus"
+)
+```
+
+设计系统架构：
 1. **架构模式选择**：单体/微服务/分层架构（遵循简单优先原则）
 2. **组件划分**：定义核心组件及其职责
 3. **架构图绘制**：使用 Mermaid 格式
 
-参考 architect.md 中的"输出规范"章节，确保架构图清晰。
-<!-- END AGENT -->
-
 ### Step 4: 技术选型
 
-<!-- AGENT: architect -->
-以架构师视角进行技术选型：
+**调用 architect 子代理**：
+
+```
+Task(
+    subagent_type: "architect",
+    prompt: "进行技术选型，评估候选技术、对比分析、确定方案",
+    model: "opus"
+)
+```
+
+进行技术选型：
 
 1. **评估候选技术**：列出 2-3 个候选方案
-2. **对比分析**：使用 architect.md 中的"技术选型评估框架"
+2. **对比分析**：使用技术选型评估框架
    - 功能满足度（30%）
    - 团队熟悉度（25%）
    - 社区活跃度（15%）
@@ -155,43 +181,66 @@ digraph solution_workflow {
 3. **确定方案**：给出推荐及理由
 
 每个技术选型都应有 ADR 记录。
-<!-- END AGENT -->
 
 ### Step 5: 数据设计
 
-<!-- AGENT: architect -->
+**调用 architect 子代理**：
+
+```
+Task(
+    subagent_type: "architect",
+    prompt: "设计数据模型，识别核心实体、设计关系、绘制 ER 图",
+    model: "opus"
+)
+```
+
 设计数据模型：
 1. **核心实体识别**：提取业务核心实体
 2. **关系设计**：定义实体间关系
 3. **ER 图绘制**：使用 Mermaid erDiagram 格式
 4. **数据流设计**：描述数据流转过程
-<!-- END AGENT -->
 
 ### Step 6: 接口设计
 
-<!-- AGENT: architect -->
+**调用 architect 子代理**：
+
+```
+Task(
+    subagent_type: "architect",
+    prompt: "设计 API 接口，定义内部接口、外部接口、接口规范",
+    model: "opus"
+)
+```
+
 设计 API 接口：
 1. **内部接口**：模块间的调用接口
 2. **外部接口**：与外部系统的集成接口
 3. **接口规范**：输入、输出、错误处理
 
 遵循 RESTful 设计原则，确保接口清晰一致。
-<!-- END AGENT -->
 
 ### Step 7: 风险分析
 
-<!-- AGENT: architect -->
+**调用 architect 子代理**：
+
+```
+Task(
+    subagent_type: "architect",
+    prompt: "进行风险评估，识别风险、评估影响、制定应对措施",
+    model: "opus"
+)
+```
+
 进行风险评估：
 
 1. **风险识别**：列出潜在风险
 2. **影响评估**：评估风险影响程度和发生概率
 3. **应对措施**：制定风险缓解策略
 
-参考 architect.md 中的质量检查清单，确保覆盖：
+确保覆盖：
 - 技术风险
 - 性能风险
 - 安全风险
-<!-- END AGENT -->
 
 ### Step 8: 生成文档
 

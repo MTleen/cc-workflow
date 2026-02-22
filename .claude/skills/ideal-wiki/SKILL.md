@@ -70,13 +70,23 @@ flowchart TD
 
 ## Agents
 
+本 Skill 通过 Task 工具调用以下子代理：
+
 | Agent | 角色 | 使用阶段 |
 |-------|------|----------|
 | tech-writer | 技术文档撰写 | Phase 1 大纲设计、Phase 2 内容撰写 |
 | dev | 开发工程师 | Phase 3 内容验证（一致性检查） |
 | qa | 测试工程师 | Phase 3 角色模拟审查 |
 
-执行各阶段前请阅读对应 Agent 文件：`.claude/agents/{agent}.md`
+**调用方式**：通过 Task 工具调用，Hook 自动注入 jsonl 配置的上下文。
+
+```markdown
+Task(
+    subagent_type: "tech-writer",
+    prompt: "设计 Wiki 大纲，规划文档结构",
+    model: "opus"
+)
+```
 
 ---
 
@@ -85,6 +95,16 @@ flowchart TD
 **目标**：根据项目实际情况规划合理的文档结构，获得用户确认。
 
 ### 1.1 分析项目需求
+
+**调用 tech-writer 子代理**：
+
+```
+Task(
+    subagent_type: "tech-writer",
+    prompt: "分析项目需求，确定目标读者、主要功能模块、文档类型",
+    model: "opus"
+)
+```
 
 **思考以下问题**：
 
@@ -224,7 +244,7 @@ docs/Wiki/
 
 **具体数据 vs 模糊描述**：
 
-| ❌ 模糊（禁止） | ✅ 具体（必须） |
+| 模糊（禁止） | 具体（必须） |
 |----------------|----------------|
 | 响应很快 | 响应时间 < 100ms |
 | 确保配置正确 | 设置 API_KEY 环境变量 |
@@ -250,7 +270,7 @@ docs/Wiki/
 - 概念解析类文档**以段落为主**，列表为辅
 - 每段一个观点，主题句在段首（开门见山）
 - 使用过渡词建立连贯性：因此、然而、此外、例如
-- ❌ 避免"列表堆砌"：不要用列表替代解释
+- 避免"列表堆砌"：不要用列表替代解释
 
 **段落 vs 列表选择**：
 
@@ -277,13 +297,13 @@ docs/Wiki/
 **IRON LAW: 必须输出文档集，禁止单文件**
 
 ```
-✅ 正确：docs/Wiki/用户指南/
+正确：docs/Wiki/用户指南/
   ├── index.md
   ├── 快速开始.md
   ├── 流程概述.md
   └── ...
 
-❌ 错误：docs/Wiki/用户指南.md（单文件）
+错误：docs/Wiki/用户指南.md（单文件）
 ```
 
 **无例外**：
@@ -343,6 +363,16 @@ docs/Wiki/
 ```
 
 ### 2.4 执行步骤
+
+**调用 tech-writer 子代理**：
+
+```
+Task(
+    subagent_type: "tech-writer",
+    prompt: "按大纲撰写文档内容，遵循正式技术风格",
+    model: "opus"
+)
+```
 
 1. 读取用户确认的 `wiki-outline.md`
 2. 创建目录结构（文档集，非单文件）
@@ -415,8 +445,17 @@ flowchart TD
 
 ### 3.1 内容一致性审查
 
-<!-- AGENT: dev -->
-你现在扮演开发工程师角色。请执行内容一致性审查：
+**调用 dev 子代理**：
+
+```
+Task(
+    subagent_type: "dev",
+    prompt: "执行内容一致性审查，检查文档与代码的一致性",
+    model: "opus"
+)
+```
+
+执行内容一致性审查：
 
 1. 读取项目核心代码和配置文件
 2. 逐一检查 Wiki 文档中的描述：
@@ -440,12 +479,20 @@ flowchart TD
 |--------|------|----------|----------|----------|
 | P0 | xxx.md | 描述 API 路径为 /v1/user | 实际为 /v2/user | 更新路径 |
 ```
-<!-- END AGENT -->
 
 ### 3.2 角色模拟审查
 
-<!-- AGENT: qa -->
-你现在扮演测试工程师角色。请执行角色模拟审查：
+**调用 qa 子代理**：
+
+```
+Task(
+    subagent_type: "qa",
+    prompt: "执行角色模拟审查，模拟新用户和开发者视角",
+    model: "opus"
+)
+```
+
+执行角色模拟审查：
 
 **模拟新用户视角**：
 1. 能否仅凭文档完成快速开始？
@@ -485,7 +532,6 @@ flowchart TD
 ### 缺失信息
 - {文档应该包含但缺失的内容}
 ```
-<!-- END AGENT -->
 
 ### 3.3 改进项追踪
 
@@ -527,6 +573,16 @@ flowchart TD
 
 ### Step 2: Phase 1 - 大纲设计
 
+**调用 tech-writer 子代理**：
+
+```
+Task(
+    subagent_type: "tech-writer",
+    prompt: "设计 Wiki 大纲，分析项目复杂度，规划文档结构",
+    model: "opus"
+)
+```
+
 1. 分析项目代码、配置、现有文档
 2. 评估项目复杂度
 3. 动态设计文档集结构
@@ -535,12 +591,38 @@ flowchart TD
 
 ### Step 3: Phase 2 - 内容撰写
 
+**调用 tech-writer 子代理**：
+
+```
+Task(
+    subagent_type: "tech-writer",
+    prompt: "按确认的大纲撰写文档内容",
+    model: "opus"
+)
+```
+
 1. 读取用户确认的大纲
 2. 创建目录结构和 `_category_.json`
 3. 按大纲逐篇撰写内容
 4. 自检每篇文档质量
 
 ### Step 4: Phase 3 - 质量审查
+
+**调用 dev 和 qa 子代理**：
+
+```
+Task(
+    subagent_type: "dev",
+    prompt: "执行内容一致性审查",
+    model: "opus"
+)
+
+Task(
+    subagent_type: "qa",
+    prompt: "执行角色模拟审查",
+    model: "opus"
+)
+```
 
 1. 执行内容一致性审查（dev 角色）
 2. 执行角色模拟审查（qa 角色）
@@ -587,7 +669,7 @@ flowchart TD
 ## Common Mistakes
 
 | 错误 | 正确做法 |
-|------|----------|
+|------|------|
 | 跳过大纲直接撰写 | Phase 1 大纲必须经用户确认 |
 | 假设大纲"看起来合理"就继续 | 必须等待用户明确说"确定" |
 | 文档数量硬编码 | 根据项目实际需求动态决定 |

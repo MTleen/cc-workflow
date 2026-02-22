@@ -12,16 +12,22 @@ agents: [architect, pm]
 
 ## Agents
 
-本 Skill 调用以下角色能力：
+本 Skill 通过 Task 工具调用以下子代理：
 
 | Agent | 角色 | 用途 |
 |-------|------|------|
 | architect | 架构师 | 模块依赖分析、技术方案拆解 |
 | pm | 产品经理 | 任务优先级、验收标准定义 |
 
-请先阅读：
-- `.claude/agents/architect.md`
-- `.claude/agents/pm.md`
+**调用方式**：通过 Task 工具调用，Hook 自动注入 jsonl 配置的上下文。
+
+```markdown
+Task(
+    subagent_type: "architect",
+    prompt: "将技术方案分解为模块和任务，按 TDD 模式组织",
+    model: "opus"
+)
+```
 
 ## When to Use
 
@@ -89,11 +95,9 @@ digraph plan_workflow {
 **验证标准**: {如何验证完成}
 ```
 
-<!-- AGENT: dev -->
-任务步骤遵循 TDD 铁律（见 `.claude/agents/dev.md`）：
+任务步骤遵循 TDD 铁律：
 - NO PRODUCTION CODE WITHOUT A FAILING TEST FIRST
 - NO COMPLETION CLAIMS WITHOUT FRESH VERIFICATION EVIDENCE
-<!-- END AGENT -->
 
 ## Plan Header Format
 
@@ -187,31 +191,39 @@ M2 (无依赖) ─┘
 
 ### Step 2: 分解模块
 
-<!-- AGENT: architect -->
-你现在扮演架构师角色。请阅读 `.claude/agents/architect.md` 了解：
-- 思维方式：简单优先、权衡取舍
-- 上下文工程化思想
+**调用 architect 子代理**：
+
+```
+Task(
+    subagent_type: "architect",
+    prompt: "分解技术方案为模块，标注依赖关系和可并行任务",
+    model: "opus"
+)
+```
 
 分解模块时：
 1. 每个模块对应一组任务
 2. 模块按依赖关系排序
 3. 标注可并行的模块
 4. 确保模块粒度适中（遵循 YAGNI 原则）
-<!-- END AGENT -->
 
 ### Step 3: 分解任务
 
-<!-- AGENT: pm -->
-你现在扮演产品经理角色。请阅读 `.claude/agents/pm.md` 了解：
-- 思维方式：MVP 思维、用户价值优先
-- 输出规范：用户故事格式、验收标准
+**调用 pm 子代理**：
+
+```
+Task(
+    subagent_type: "pm",
+    prompt: "将模块分解为原子任务，定义验收标准，按 MVP 思维排序",
+    model: "opus"
+)
+```
 
 分解任务时：
 1. 将每个模块分解为 3-7 个任务
 2. 每个任务粒度 2-5 分钟
 3. 确保任务可独立验证
 4. 为每个任务定义清晰的验收标准
-<!-- END AGENT -->
 
 ### Step 4: 组织 TDD 步骤
 
@@ -227,8 +239,15 @@ M2 (无依赖) ─┘
 
 ### Step 6: 生成故事文件（上下文工程化）
 
-<!-- AGENT: architect -->
-你现在扮演架构师角色。请阅读 `.claude/agents/architect.md` 了解上下文工程化思想。
+**调用 architect 子代理**：
+
+```
+Task(
+    subagent_type: "architect",
+    prompt: "生成故事文件，实现上下文隔离，每个故事包含完整上下文",
+    model: "opus"
+)
+```
 
 **目的**：将编码计划拆分成独立的故事文件，实现上下文隔离。
 
@@ -292,7 +311,6 @@ depends_on: [依赖故事ID]
 1. 创建目录：`docs/迭代/{需求名称}/stories/`
 2. 为每个模块生成故事文件：`001-xxx.md`, `002-xxx.md`, ...
 3. 生成故事索引：`index.md`
-<!-- END AGENT -->
 
 ### Step 7: 生成故事索引
 

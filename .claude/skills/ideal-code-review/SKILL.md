@@ -1,7 +1,7 @@
 ---
 name: ideal-code-review
 description: Use for two-stage code review after batch execution. Reviews spec compliance first, then code quality. Called by ideal-dev-exec automatically.
-agents: [dev, architect]
+agents: [check]
 ---
 
 # ideal-code-review（代码审查）
@@ -16,16 +16,21 @@ agents: [dev, architect]
 
 ## Agents
 
-本 Skill 调用以下角色能力：
+本 Skill 通过 Task 工具调用以下子代理：
 
 | Agent | 角色 | 用途 |
 |-------|------|------|
-| dev | 开发工程师 | 代码质量审查 |
-| architect | 架构师 | 架构合规审查 |
+| check | 代码检查工程师 | 两阶段审查、自我修复、验证 |
 
-请先阅读：
-- `.claude/agents/dev.md`
-- `.claude/agents/architect.md`
+**调用方式**：通过 Task 工具调用，Hook 自动注入 jsonl 配置的上下文。
+
+```markdown
+Task(
+    subagent_type: "check",
+    prompt: "执行两阶段代码审查：规范合规 + 代码质量",
+    model: "opus"
+)
+```
 
 ## When to Use
 
@@ -58,6 +63,26 @@ agents: [dev, architect]
 
 ---
 
+## Ralph Loop 配合
+
+```mermaid
+flowchart TD
+    A[ideal-dev-exec 完成批次] --> B[Task: check]
+    B --> C{Phase 1 规范合规}
+    C -->|不合规| D[check 子代理修复]
+    D --> C
+    C -->|通过| E{Phase 2 代码质量}
+    E -->|有问题| F{能否自修复?}
+    F -->|是| G[check 子代理修复]
+    G --> E
+    F -->|否| H[Task: debug]
+    H --> I[修复后重新审查]
+    I --> B
+    E -->|通过| J[生成审查报告]
+```
+
+---
+
 ## Workflow
 
 ```dot
@@ -67,10 +92,10 @@ digraph review_workflow {
     start [label="开始审查"];
     spec [label="阶段一：规范合规审查"];
     spec_result [label="合规？"];
-    spec_fix [label="实现子代理修复"];
+    spec_fix [label="check 子代理修复"];
     quality [label="阶段二：代码质量审查"];
     quality_result [label="通过？"];
-    quality_fix [label="实现子代理修复"];
+    quality_fix [label="check 子代理修复"];
     report [label="生成审查报告"];
     end [label="完成"];
 
@@ -131,7 +156,7 @@ digraph review_workflow {
 - 文件偏差: {list}
     │
     ▼
-派遣实现子代理修复
+调用 check 子代理修复
     │
     ▼
 重新审查
@@ -199,7 +224,7 @@ digraph review_workflow {
 Critical/Important 必须修复
     │
     ▼
-派遣实现子代理修复
+调用 check 子代理修复
     │
     ▼
 重新审查
@@ -357,7 +382,15 @@ Critical/Important 必须修复
 ```markdown
 ### Step 5: 两阶段审查（每批次后）
 
-#### 调用 ideal-code-review
+#### 调用 check 子代理
+
+```
+Task(
+    subagent_type: "check",
+    prompt: "执行两阶段代码审查：规范合规 + 代码质量",
+    model: "opus"
+)
+```
 
 1. 生成审查报告
 2. 写入 `docs/迭代/{需求}/P9.1-代码审查.md`

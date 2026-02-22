@@ -1,7 +1,7 @@
 ---
 name: ideal-dev-exec
 description: Use when P8 test case review is completed and development execution is needed. Executes coding tasks following TDD principles with Git branch management.
-agents: [dev]
+agents: [implement, check, debug]
 ---
 
 # ideal-dev-exec（P9 开发执行）
@@ -12,13 +12,23 @@ agents: [dev]
 
 ## Agents
 
-本 Skill 调用以下角色能力：
+本 Skill 通过 Task 工具调用以下子代理：
 
 | Agent | 角色 | 用途 |
 |-------|------|------|
-| dev | 开发工程师 | 代码实现、TDD 开发、调试 |
+| implement | 代码实现工程师 | 代码实现、TDD 开发 |
+| check | 代码检查工程师 | 代码检查、自我修复、验证 |
+| debug | 调试工程师 | 根因分析、问题调试 |
 
-请先阅读：`.claude/agents/dev.md`
+**调用方式**：通过 Task 工具调用，Hook 自动注入 jsonl 配置的上下文。
+
+```markdown
+Task(
+    subagent_type: "implement",
+    prompt: "实现 XXX 功能，上下文已自动注入",
+    model: "opus"
+)
+```
 
 ## When to Use
 
@@ -108,6 +118,51 @@ digraph dev_exec_workflow {
 
 ---
 
+## Ralph Loop 执行机制
+
+### 核心循环
+
+```mermaid
+flowchart TD
+    A[开始任务] --> B[Task: implement]
+    B --> C{实现完成?}
+    C -->|否| D[Task: debug]
+    D --> B
+    C -->|是| E[Task: check]
+    E --> F{检查通过?}
+    F -->|否| G{能否自修复?}
+    G -->|是| E
+    G -->|否| D
+    F -->|是| H[任务完成]
+```
+
+### 子代理职责
+
+| 子代理 | 职责 | 调用时机 |
+|--------|------|----------|
+| implement | 纯代码实现 | 每个任务开始时 |
+| check | 代码检查和自修复 | implement 完成后 |
+| debug | 根因分析和调试 | check 失败且无法自修复 |
+
+### Hook 自动注入
+
+通过 jsonl 配置，Hook 会自动为 Task 调用注入上下文：
+
+```json
+{
+  "subagent_type": "implement",
+  "context_files": [
+    "docs/迭代/{需求}/stories/current.md",
+    ".claude/agents/implement.md"
+  ],
+  "context_dirs": [
+    "src/"
+  ]
+}
+```
+
+---
+
 ## Step-by-Step Process
 
 ### Step 0: 读取项目配置
@@ -136,9 +191,6 @@ digraph dev_exec_workflow {
 ---
 
 ### Step 1: 加载故事文件（上下文隔离）
-
-<!-- AGENT: dev -->
-你现在扮演开发工程师角色。请阅读 `.claude/agents/dev.md` 了解 TDD 铁律和开发原则。
 
 **重要**：上下文隔离是提高开发质量的关键。
 
@@ -169,7 +221,6 @@ digraph dev_exec_workflow {
 **如果故事文件不存在**：
 - 回退到加载完整 P5-编码计划.md
 - 提示用户建议在 P5 阶段生成故事文件
-<!-- END AGENT -->
 
 ---
 
@@ -234,8 +285,15 @@ git check-ignore -q .worktrees || echo ".worktrees/" >> .gitignore
 
 ### Step 4: 执行当前故事
 
-<!-- AGENT: dev -->
-你现在扮演开发工程师角色。请阅读 `.claude/agents/dev.md` 了解 TDD 流程。
+**调用 implement 子代理执行任务**：
+
+```
+Task(
+    subagent_type: "implement",
+    prompt: "执行故事文件中的任务清单，遵循 TDD 铁律",
+    model: "opus"
+)
+```
 
 **执行当前故事的任务**：
 
@@ -252,7 +310,6 @@ git check-ignore -q .worktrees || echo ".worktrees/" >> .gitignore
 - 更新故事文件的"实现笔记"
 - 勾选完成的任务和验收标准
 - 将故事状态改为 `completed`
-<!-- END AGENT -->
 
 #### 4.1 执行模式
 
@@ -290,30 +347,18 @@ git check-ignore -q .worktrees || echo ".worktrees/" >> .gitignore
 
 | 错误类型 | 处理方式 |
 |----------|----------|
-| 单任务失败 | 暂停批次，**调用 ideal-debugging** |
+| 单任务失败 | 暂停批次，**调用 debug 子代理** |
 | 依赖失败 | 跳过依赖此任务的所有后续任务 |
 | 超时 | 标记超时，报告进度，等待介入 |
 
-**遇到失败时自动调用 ideal-debugging**：
+**遇到失败时调用 debug 子代理**：
 
 ```
-任务失败
-    │
-    ▼
-暂停批次
-    │
-    ▼
-调用 ideal-debugging
-    │
-    ├── Phase 1: 根因调查
-    ├── Phase 2: 模式分析
-    ├── Phase 3: 假设测试
-    └── Phase 4: TDD 修复
-    │
-    ▼
-修复成功？
-    ├── 是 → 继续批次
-    └── 否 → 等待人工介入
+Task(
+    subagent_type: "debug",
+    prompt: "任务执行失败，进行根因分析和调试",
+    model: "opus"
+)
 ```
 
 ---
@@ -322,13 +367,21 @@ git check-ignore -q .worktrees || echo ".worktrees/" >> .gitignore
 
 **每个故事完成后执行审查**：（每批次后）
 
-**自动调用 ideal-code-review skill**
+**调用 check 子代理**：
+
+```
+Task(
+    subagent_type: "check",
+    prompt: "执行两阶段代码审查：规范合规 + 代码质量",
+    model: "opus"
+)
+```
 
 ```
 批次完成
     │
     ▼
-调用 ideal-code-review
+调用 check 子代理
     │
     ├── 阶段一：规范合规审查
     │   └── 不合规 → 修复 → 重新审查
@@ -340,21 +393,21 @@ git check-ignore -q .worktrees || echo ".worktrees/" >> .gitignore
         └── docs/迭代/{需求}/P9.1-代码审查.md
 ```
 
-#### 5.1 规范合规审查（ideal-code-review Phase 1）
+#### 5.1 规范合规审查（Phase 1）
 
 **目的**：确认实现符合 P5 编码计划
 
-**审查清单**（详见 ideal-code-review skill）：
+**审查清单**：
 - [ ] 实现了计划中指定的功能？
 - [ ] 没有添加计划外的功能？
 - [ ] 文件范围符合计划？
 - [ ] 测试覆盖了计划中的验证标准？
 
-#### 5.2 代码质量审查（ideal-code-review Phase 2）
+#### 5.2 代码质量审查（Phase 2）
 
 **目的**：确认代码质量符合标准
 
-**审查清单**（详见 ideal-code-review skill）：
+**审查清单**：
 - [ ] 代码风格符合项目规范？
 - [ ] 无明显的性能问题？
 - [ ] 无安全隐患？
@@ -486,8 +539,17 @@ git check-ignore -q .worktrees || echo ".worktrees/" >> .gitignore
 
 ## Debugging Flow
 
-遇到 bug 或测试失败时：
+遇到 bug 或测试失败时，调用 debug 子代理：
 
+```
+Task(
+    subagent_type: "debug",
+    prompt: "执行系统化调试：Phase 1 根因调查 → Phase 2 模式分析 → Phase 3 假设测试 → Phase 4 TDD 修复",
+    model: "opus"
+)
+```
+
+**调试流程**：
 ```
 Phase 1: 根因调查（修复前必须完成）
     │
@@ -527,12 +589,13 @@ Phase 4: 实现（遵循 TDD）
 
 ## Skill Dependencies
 
-**本 skill 自动调用以下 skills**：
+**本 skill 通过 Task 工具调用以下子代理**：
 
-| Skill | 触发时机 | 用途 |
-|-------|----------|------|
-| ideal-code-review | 每批次完成后 | 两阶段代码审查 |
-| ideal-debugging | 任务失败时 | 系统化调试 |
+| 子代理 | 触发时机 | 用途 |
+|--------|----------|------|
+| implement | 每个任务开始 | 代码实现 |
+| check | implement 完成后 | 两阶段代码审查 |
+| debug | 任务失败时 | 系统化调试 |
 
 ---
 

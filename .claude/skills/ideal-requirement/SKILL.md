@@ -10,16 +10,22 @@ agents: [pm, analyst]
 
 ## Agents
 
-本 Skill 调用以下角色能力：
+本 Skill 通过 Task 工具调用以下子代理：
 
 | Agent | 角色 | 用途 |
 |-------|------|------|
 | pm | 产品经理 | 需求梳理、苏格拉底式对话、文档编写 |
 | analyst | 业务分析师 | 竞品分析、市场调研（可选） |
 
-请先阅读：
-- `.claude/agents/pm.md`
-- `.claude/agents/analyst.md`
+**调用方式**：通过 Task 工具调用，Hook 自动注入 jsonl 配置的上下文。
+
+```markdown
+Task(
+    subagent_type: "pm",
+    prompt: "执行需求收集，苏格拉底式对话引导用户",
+    model: "opus"
+)
+```
 
 ## Workflow
 
@@ -180,14 +186,15 @@ You are ABOUT TO violate this rule if:
 
 ## 3. Requirement Gathering (Socratic Dialogue)
 
-<!-- AGENT: pm -->
-你现在扮演产品经理角色。请阅读 `.claude/agents/pm.md` 了解：
-- 角色定义：以用户价值为导向
-- 思维方式：苏格拉底式提问、MVP 思维
-- 输出规范：用户故事格式、需求文档结构
+**调用 pm 子代理执行需求收集**：
 
-然后执行需求收集任务。
-<!-- END AGENT -->
+```
+Task(
+    subagent_type: "pm",
+    prompt: "执行苏格拉底式需求收集，逐项填充模板占位符",
+    model: "opus"
+)
+```
 
 ### 3.0 User Commands (Anytime)
 
@@ -202,15 +209,13 @@ You are ABOUT TO violate this rule if:
 
 ### 3.1 Question Strategy
 
-<!-- AGENT: pm -->
 以产品经理的视角，采用苏格拉底式提问策略：
 
 1. **一次只问一个问题** - 不堆砌多个问题
 2. **提供选项辅助** - 复杂问题给出 2-4 个选项
-3. **追问细节** - 根据回答深入挖掘（参考 pm.md 中的"苏格拉底式问题清单"）
+3. **追问细节** - 根据回答深入挖掘
 4. **记录答案** - 实时记录用户回答
 5. **聚焦用户价值** - 每个功能都要回答"为谁解决什么问题"
-<!-- END AGENT -->
 
 ### 3.2 Progress Indicator
 
@@ -226,19 +231,21 @@ You are ABOUT TO violate this rule if:
 
 ### 3.3 Optional: Competitor Analysis
 
-<!-- AGENT: analyst -->
-如果用户需要竞品分析，你现在扮演业务分析师角色。
+**调用 analyst 子代理执行竞品分析**：
 
-请阅读 `.claude/agents/analyst.md` 了解：
-- 角色定义：证据优先、结构化思维
-- 输出规范：竞品分析报告结构
+```
+Task(
+    subagent_type: "analyst",
+    prompt: "执行竞品分析，对比功能差异，提出差异化建议",
+    model: "opus"
+)
+```
 
-执行竞品分析时：
+如果用户需要竞品分析，执行以下步骤：
 1. 识别主要竞品
 2. 对比功能差异
 3. 分析优劣势
 4. 提出差异化建议
-<!-- END AGENT -->
 
 ## 4. Error Handling
 
@@ -279,27 +286,47 @@ You are ABOUT TO violate this rule if:
 
 ## 6. Generation
 
-<!-- AGENT: pm -->
-你现在扮演产品经理角色。请阅读 `.claude/agents/pm.md` 了解输出规范。
+**调用 pm 子代理生成文档**：
+
+```
+Task(
+    subagent_type: "pm",
+    prompt: "根据收集的信息生成正式学术风格的需求文档",
+    model: "opus"
+)
+```
 
 根据收集的信息，生成符合正式学术风格的需求文档：
-1. 应用需求文档结构（见 pm.md 输出规范）
+1. 应用需求文档结构
 2. 确保验收标准清晰、可测试
 3. 使用正式学术风格（见 `references/writing-style.md`）
-<!-- END AGENT -->
 
 ### 6.1 Determine Requirement Name
 
 与用户确认需求名称，建议基于 title 自动生成目录名。
 
+**命名规范**：
+- 目录格式：`{YYYY-MM-DD}-{状态}-{需求名称}/`
+- 日期为需求提出日期
+- 状态标识：`[进行中]` 或 `[完成]`
+- 需求名称使用简短英文或中文，不含特殊字符
+
+**示例**：
+- 进行中：`2026-02-22-[进行中]-用户登录优化/`
+- 已完成：`2026-02-22-[完成]-用户登录优化/`
+
+**状态更新规则**：
+- 创建需求时：文件夹名称包含 `[进行中]`
+- P16 阶段完成后：重命名文件夹，将 `[进行中]` 改为 `[完成]`
+
 ### 6.2 Create Files
 
-**输出路径**：`docs/迭代/{需求名称}/`
+**输出路径**：`docs/迭代/{YYYY-MM-DD}-[进行中]-{需求名称}/`
 
 | 文件 | 说明 |
 |------|------|
 | `P1-需求文档.md` | 需求文档本体（填充模板 + 学术风格） |
-| `流程状态.md` | 流程控制文件（current_phase: P1, status: completed） |
+| `流程状态.md` | 流程控制文件（current_phase: P1, status: in_progress） |
 
 ### 6.3 Generation Process
 
@@ -307,6 +334,17 @@ You are ABOUT TO violate this rule if:
 2. 填充占位符，计算风险等级
 3. 应用正式学术风格（见 `references/writing-style.md`）
 4. 写入文件
+
+### 6.4 Worktree 创建（可选）
+
+如果用户需要开始开发，可以调用 using-git-worktrees skill：
+
+```
+Skill(
+    skill: "using-git-worktrees",
+    args: "{需求名称}"
+)
+```
 
 ## 7. Completion
 
@@ -386,7 +424,7 @@ You are ABOUT TO violate this rule if:
 |--------|---------|-------|
 | `validate-requirements.py` | 验证需求文档完整性 | `python scripts/validate-requirements.py <file.md>` |
 | `calculate-risk.py` | 计算风险等级 | `python scripts/calculate-risk.py <file.md>` |
-| `generate-flow-status.py` | 生成流程状态文件 | `python scripts/generate-flow-status.py <output_dir> <requirement_name> [phase]` |
+| `generate-flow-status.py` | 生成流程状态文件 | `python scripts/generate-flow-status.py <output_dir> <requirement_name> <created_date> [phase]` |
 
 **Scripts location:** `scripts/` directory within this skill
 
