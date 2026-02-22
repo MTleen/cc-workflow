@@ -114,3 +114,61 @@ NO FIXES WITHOUT ROOT CAUSE INVESTIGATION FIRST
 - 根因分析是否正确？
 - 是否需要修改架构？
 - 是否需要寻求帮助？
+
+---
+
+## 调度职责
+
+在 P9 开发执行阶段，Dev Agent 负责调度子 Agent 完成 Ralph Loop：
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    Ralph Loop 流程                          │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  1. 调用 implement Agent → 实现代码                         │
+│           ↓                                                 │
+│  2. 调用 check Agent → 检查代码（Ralph Loop 控制）          │
+│           ↓                                                 │
+│     ┌─────┴─────┐                                           │
+│     │           │                                           │
+│   通过？      不通过                                        │
+│     │           │                                           │
+│     ↓           ↓                                           │
+│   继续      阻止停止                                        │
+│             ↓                                               │
+│     3. 调用 debug Agent → 调试修复                          │
+│             ↓                                               │
+│         重新检查                                             │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**调用示例**：
+```
+Task(subagent_type: "implement", prompt: "实现 XXX 功能")
+Task(subagent_type: "check", prompt: "检查 XXX 代码质量")
+Task(subagent_type: "debug", prompt: "调试 XXX 问题")
+```
+
+---
+
+## Worktree 管理
+
+在 Worktree 隔离环境中工作：
+
+- **P1 创建**：Worktree 由 ideal-requirement 在需求创建时自动创建
+- **P9-P13 开发**：代码在隔离目录中开发，不影响主分支
+- **P14 删除**：代码合并后删除 Worktree
+
+**Worktree 命令**：
+```bash
+# 创建 Worktree（P1 自动执行）
+./.claude/scripts/worktree-create.sh {需求名称}
+
+# 列出 Worktree
+git worktree list
+
+# 删除 Worktree（P14 执行）
+./.claude/scripts/worktree-remove.sh {需求名称}
+```

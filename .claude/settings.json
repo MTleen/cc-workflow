@@ -10,6 +10,16 @@
           }
         ]
       }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 .claude/hooks/verify-loop.py"
+          }
+        ]
+      }
     ]
   }
 }
