@@ -82,20 +82,33 @@ flowchart TD
 
 ### Step 1: 验证前置条件
 
-**检查项**：
+**流程状态文件位置**：`docs/迭代/{YYYY-MM-DD}-[进行中]-{需求名称}/流程状态.md`
+
+**文件格式**：Markdown 文件，包含 YAML frontmatter
+
+```yaml
+---
+current_phase: P14
+status: in_progress
+requirement_name: {需求名称}
+created_date: {创建日期}
+stories_dir: docs/迭代/{需求名称}/stories/
+---
+```
+
+**验证命令**：
 
 ```bash
-# 检查当前阶段
-cat docs/迭代/*/流程状态.md | grep current_phase
-# 应该显示 current_phase: P14 或 P15
+# 找到进行中的迭代目录
+ls docs/迭代/ | grep "\[进行中\]"
 
-# 检查测试状态
-cat docs/迭代/*/流程状态.md | grep -E "test|P11|P12"
-# 应该显示 completed
+# 检查当前阶段（读取 frontmatter）
+head -10 docs/迭代/*[进行中]*/流程状态.md
+# current_phase 应该是 P14 或 P15
 
-# 检查维基状态
-cat docs/迭代/*/流程状态.md | grep -E "wiki|P13|P14"
-# 应该显示 completed 或 skipped
+# 检查阶段进度表中的测试和维基状态
+cat docs/迭代/*[进行中]*/流程状态.md | grep -E "P11|P12|P13|P14"
+# 应该显示 ✅ completed 或 ⏭️ skipped
 ```
 
 **如果前置条件不满足**：
@@ -243,7 +256,9 @@ rm -rf {worktree路径}
 
 ### Step 6: 更新流程状态
 
-**修改 `docs/迭代/{需求名称}/流程状态.md`**：
+**修改 `docs/迭代/{YYYY-MM-DD}-[进行中]-{需求名称}/流程状态.md`**：
+
+更新 YAML frontmatter：
 
 ```yaml
 ---
@@ -251,25 +266,22 @@ current_phase: P15
 status: completed
 requirement_name: {需求名称}
 created_date: {创建日期}
-completed_date: {完成日期}
 stories_dir: docs/迭代/{需求名称}/stories/
-pr_url: {PR-URL}
-merged_at: {合并时间}
 ---
 ```
 
-**添加完成记录**：
+更新阶段进度表中的 P15 行：
+
+```markdown
+| P15 成果提交 | ✅ completed | {日期} | {备注} |
+```
+
+在文件末尾添加完成记录：
 
 ```markdown
 ## 迭代完成
 
 ✅ {需求名称} 于 {日期} 完成
-
-### 成果清单
-- 代码提交：{commit hash}
-- Pull Request：{PR-URL}
-- 测试覆盖：{测试数量} 个用例，{通过率}% 通过
-- 文档更新：{文档列表}
 ```
 
 ### Step 7: 重命名迭代目录
