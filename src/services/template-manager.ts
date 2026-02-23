@@ -76,6 +76,7 @@ export interface TemplateVariables {
 export class TemplateManager {
   private githubClient: GitHubClient;
   private repoOwner: string;
+  private repoName: string;
   private templatePath: string;
   private branch: string;
   private cacheDir: string;
@@ -83,7 +84,13 @@ export class TemplateManager {
 
   constructor(config: TemplateManagerConfig = {}) {
     this.githubClient = config.githubClient ?? new GitHubClient();
-    this.repoOwner = config.repoOwner ?? `${DEFAULT_REPO_OWNER}/${DEFAULT_REPO_NAME}`;
+
+    // 解析 repoOwner，支持 "owner/name" 格式或单独的 owner
+    const repoConfig = config.repoOwner ?? `${DEFAULT_REPO_OWNER}/${DEFAULT_REPO_NAME}`;
+    const parts = repoConfig.split('/');
+    this.repoOwner = parts[0] ?? DEFAULT_REPO_OWNER;
+    this.repoName = parts[1] ?? DEFAULT_REPO_NAME;
+
     this.templatePath = config.templatePath ?? DEFAULT_TEMPLATE_PATH;
     this.branch = config.branch ?? DEFAULT_BRANCH;
     this.verbose = config.verbose ?? false;
@@ -106,7 +113,7 @@ export class TemplateManager {
    * @returns 模板缓存目录路径
    */
   private getTemplateCachePath(): string {
-    return path.join(this.cacheDir, this.repoOwner, this.templatePath);
+    return path.join(this.cacheDir, this.repoOwner, this.repoName, this.templatePath);
   }
 
   /**
@@ -124,7 +131,7 @@ export class TemplateManager {
    */
   async fetchTemplate(force: boolean = false): Promise<number> {
     if (this.verbose) {
-      logger.debug(`Fetching template from ${this.repoOwner}/${this.templatePath}`);
+      logger.debug(`Fetching template from ${this.repoOwner}/${this.repoName}/${this.templatePath}`);
     }
 
     // 检查缓存是否存在
@@ -151,13 +158,13 @@ export class TemplateManager {
     // 递归获取所有文件
     const files = await this.githubClient.fetchDirectory(
       this.repoOwner,
+      this.repoName,
       this.templatePath,
-      '',
       this.branch
     );
 
     if (files.length === 0) {
-      logger.warn(`No files found in ${this.repoOwner}/${this.templatePath}`);
+      logger.warn(`No files found in ${this.repoOwner}/${this.repoName}/${this.templatePath}`);
       return 0;
     }
 
@@ -168,7 +175,7 @@ export class TemplateManager {
         try {
           const content = await this.githubClient.getFileContent(
             this.repoOwner,
-            this.templatePath,
+            this.repoName,
             file.path,
             this.branch
           );
@@ -230,7 +237,7 @@ export class TemplateManager {
   async getTemplateVersion(): Promise<TemplateMeta> {
     return this.githubClient.getVersion(
       this.repoOwner,
-      this.templatePath,
+      this.repoName,
       'version.json',
       this.branch
     );

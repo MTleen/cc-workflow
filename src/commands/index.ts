@@ -5,20 +5,11 @@
  */
 
 import { Command } from 'commander';
-import { HELP_INIT, HELP_DOCTOR } from '../constants/messages.js';
+import { HELP_DOCTOR } from '../constants/messages.js';
 import { DoctorCommand } from './doctor.js';
 import { createConfigCommand } from './config.js';
 import { UpdateCommand } from './update.js';
-
-/**
- * 占位命令处理函数 - init
- *
- * TODO: 在后续 Story 中实现完整功能
- */
-async function handleInit(): Promise<void> {
-  console.log('init 命令尚未实现');
-  process.exit(0);
-}
+import { InitCommand } from './init.js';
 
 /**
  * doctor 命令处理函数
@@ -37,11 +28,19 @@ async function handleDoctor(options: { verbose?: boolean }): Promise<void> {
  * @param program - Commander 程序实例
  */
 export function registerCommands(program: Command): void {
-  // init 命令 - 初始化项目工作流配置
+  // init 命令 - 初始化项目工作流配置（简化版，无交互式引导）
   program
     .command('init')
-    .description(HELP_INIT)
-    .action(handleInit);
+    .description('初始化项目工作流配置')
+    .option('-f, --force', '强制覆盖已存在的配置')
+    .option('-v, --verbose', '显示详细日志')
+    .action(async (options: { force?: boolean; verbose?: boolean }) => {
+      const initCommand = new InitCommand({
+        verbose: options.verbose,
+      });
+      const exitCode = await initCommand.execute({ force: options.force });
+      process.exit(exitCode);
+    });
 
   // config 命令 - 查看或修改项目配置（带子命令）
   const configCommand = createConfigCommand();

@@ -2,36 +2,34 @@
  * Init 命令模块
  *
  * 负责初始化项目工作流配置
+ * 简化版：只创建目录结构，从 GitHub 下载模板文件
  */
 
 import path from 'path';
-import inquirer from 'inquirer';
+import { exec } from 'child_process';
+import { promisify } from 'util';
 import { Command } from 'commander';
-import { TemplateManager, TemplateVariables } from '../services/template-manager.js';
-import { ConfigManager } from '../services/config-manager.js';
-import { TechStack } from '../types/config.js';
 import { logger } from '../utils/logger.js';
 import { startSpinner, spinnerSuccess, spinnerFail } from '../utils/spinner.js';
 import {
   pathExists,
   ensureDir,
   fileExists,
+  remove,
+  copyDir,
 } from '../utils/file-system.js';
 import {
-  detectProjectName,
-  detectTechStack,
-  detectGitRepo,
-  getGitBranch,
-} from '../utils/detector.js';
-import {
-  MSG_INIT_SUCCESS,
   ERR_DIR_EXISTS,
   INFO_CREATING_DIR,
-  INFO_DOWNLOADING,
-  PROMPT_PROJECT_NAME,
-  PROMPT_GIT_BRANCH,
-  PROMPT_TECH_STACK,
 } from '../constants/messages.js';
+import {
+  DEFAULT_REPO_OWNER,
+  DEFAULT_REPO_NAME,
+  DEFAULT_BRANCH,
+  DEFAULT_TEMPLATE_PATH,
+} from '../constants/defaults.js';
+
+const execAsync = promisify(exec);
 
 /**
  * Init 命令配置
@@ -41,24 +39,6 @@ export interface InitCommandConfig {
   projectPath?: string;
   /** 是否启用 verbose 模式 */
   verbose?: boolean;
-  /** 是否跳过交互（使用默认值） */
-  skipPrompts?: boolean;
-  /** 是否强制覆盖已存在的配置 */
-  force?: boolean;
-}
-
-/**
- * 用户输入的配置
- */
-export interface UserInputConfig {
-  /** 项目名称 */
-  projectName: string;
-  /** Git 主分支名称 */
-  gitBranch: string;
-  /** 技术栈类型 */
-  techStack: TechStack;
-  /** 是否创建示例文件 */
-  createExample: boolean;
 }
 
 /**
@@ -74,15 +54,18 @@ const DIRECTORY_STRUCTURE = [
 ];
 
 /**
- * 技术栈选项
+ * 模板下载配置
  */
-const TECH_STACK_CHOICES = [
-  { name: 'React', value: 'React' },
-  { name: 'Vue', value: 'Vue' },
-  { name: 'Node.js', value: 'Node.js' },
-  { name: 'Python', value: 'Python' },
-  { name: 'Other', value: 'Other' },
-];
+const TEMPLATE_CONFIG = {
+  owner: DEFAULT_REPO_OWNER,
+  repo: DEFAULT_REPO_NAME,
+  branch: DEFAULT_BRANCH,
+  templatePath: DEFAULT_TEMPLATE_PATH,
+  // GitHub 仓库 zip 下载地址
+  get zipUrl() {
+    return `https://github.com/${this.owner}/${this.repo}/archive/refs/heads/${this.branch}.zip`;
+  },
+};
 
 /**
  * InitCommand 类
@@ -90,14 +73,10 @@ const TECH_STACK_CHOICES = [
  * 管理项目初始化流程
  */
 export class InitCommand {
-  private templateManager: TemplateManager;
-  private configManager: ConfigManager;
   private projectPath: string;
   private verbose: boolean;
 
   constructor(config: InitCommandConfig = {}) {
-    this.templateManager = new TemplateManager({ verbose: config.verbose });
-    this.configManager = new ConfigManager();
     this.projectPath = config.projectPath ?? process.cwd();
     this.verbose = config.verbose ?? false;
 
@@ -112,71 +91,12 @@ export class InitCommand {
    */
   async detectExistingConfig(): Promise<boolean> {
     const claudeDir = path.join(this.projectPath, '.claude');
-    const configPath = this.configManager.getConfigPath(this.projectPath);
+    const configFile = path.join(this.projectPath, '.claude', 'project-config.md');
 
     const claudeDirExists = await pathExists(claudeDir);
-    const configFileExists = await fileExists(configPath);
+    const configFileExists = await fileExists(configFile);
 
     return claudeDirExists && configFileExists;
-  }
-
-  /**
-   * 交互式引导用户输入配置
-   * @returns 用户输入的配置
-   */
-  async promptConfig(): Promise<UserInputConfig> {
-    // 检测默认值
-    const defaultProjectName = await detectProjectName(this.projectPath);
-    const defaultTechStack = await detectTechStack(this.projectPath);
-    const isGitRepo = await detectGitRepo(this.projectPath);
-    const defaultGitBranch = isGitRepo
-      ? getGitBranch(this.projectPath) ?? 'main'
-      : 'main';
-
-    logger.title('初始化 ideal-cli 工作流配置');
-    logger.newline();
-
-    const answers = await inquirer.prompt<UserInputConfig>([
-      {
-        type: 'input',
-        name: 'projectName',
-        message: PROMPT_PROJECT_NAME,
-        default: defaultProjectName,
-        validate: (input: string) => {
-          if (!input.trim()) {
-            return '项目名称不能为空';
-          }
-          return true;
-        },
-      },
-      {
-        type: 'input',
-        name: 'gitBranch',
-        message: PROMPT_GIT_BRANCH,
-        default: defaultGitBranch,
-        validate: (input: string) => {
-          if (!input.trim()) {
-            return '分支名称不能为空';
-          }
-          return true;
-        },
-      },
-      {
-        type: 'list',
-        name: 'techStack',
-        message: PROMPT_TECH_STACK,
-        choices: TECH_STACK_CHOICES,
-        default: defaultTechStack,
-      },
-      {
-        type: 'confirm',
-        name: 'createExample',
-        message: '是否创建示例文件？',
-        default: false,
-      },
-    ]);
-
-    return answers;
   }
 
   /**
@@ -208,55 +128,65 @@ export class InitCommand {
   }
 
   /**
-   * 应用模板文件
-   * @param userInput 用户输入的配置
+   * 下载并应用模板
+   * 使用 curl 下载 zip 文件，解压后复制到目标目录
    * @returns 处理的文件数量
    */
-  async applyTemplate(userInput: UserInputConfig): Promise<number> {
-    const spinner = startSpinner(INFO_DOWNLOADING);
+  async downloadAndApplyTemplate(): Promise<number> {
+    const spinner = startSpinner('正在下载模板...');
 
     try {
-      // 构建模板变量
-      const variables: TemplateVariables = {
-        projectName: userInput.projectName,
-        gitBranch: userInput.gitBranch,
-        techStack: userInput.techStack,
-        initializedAt: new Date().toISOString(),
-      };
+      // 创建临时目录
+      const tempDir = path.join(this.projectPath, '.ideal-cli-temp');
+      await ensureDir(tempDir);
 
-      // 拉取模板
-      await this.templateManager.fetchTemplate();
+      const zipFile = path.join(tempDir, 'template.zip');
+      const extractDir = path.join(tempDir, 'extracted');
 
-      // 应用模板到 .claude 目录
-      const claudeDir = path.join(this.projectPath, '.claude');
-      const filesProcessed = await this.templateManager.applyTemplate(
-        claudeDir,
-        variables
-      );
+      try {
+        // 下载 zip 文件
+        logger.debug(`Downloading from: ${TEMPLATE_CONFIG.zipUrl}`);
+        await execAsync(`curl -sL "${TEMPLATE_CONFIG.zipUrl}" -o "${zipFile}"`);
 
-      spinnerSuccess(spinner, `应用了 ${filesProcessed} 个模板文件`);
-      return filesProcessed;
+        // 检查下载是否成功
+        if (!(await fileExists(zipFile))) {
+          throw new Error('模板下载失败');
+        }
+
+        // 解压 zip 文件
+        await ensureDir(extractDir);
+        await execAsync(`unzip -q "${zipFile}" -d "${extractDir}"`);
+
+        // 找到解压后的目录（通常是 repo-branch 格式）
+        const extractedFolder = path.join(extractDir, `${TEMPLATE_CONFIG.repo}-${TEMPLATE_CONFIG.branch}`);
+        const templateSourceDir = path.join(extractedFolder, TEMPLATE_CONFIG.templatePath);
+
+        // 检查模板目录是否存在
+        if (!(await pathExists(templateSourceDir))) {
+          throw new Error(`模板目录不存在: ${TEMPLATE_CONFIG.templatePath}`);
+        }
+
+        // 复制模板文件到 .claude 目录（过滤 configs 目录和 version.json）
+        const claudeDir = path.join(this.projectPath, '.claude');
+        await copyDir(templateSourceDir, claudeDir, {
+          overwrite: true,
+          filter: (src: string) => {
+            const relativePath = path.relative(templateSourceDir, src);
+            // 排除 configs 目录和 version.json
+            return !relativePath.startsWith('configs') && relativePath !== 'version.json';
+          },
+        });
+
+        spinnerSuccess(spinner, '模板文件应用成功');
+        return 0;
+      } finally {
+        // 清理临时目录
+        await remove(tempDir);
+      }
     } catch (error) {
-      spinnerFail(spinner, '模板应用失败');
+      spinnerFail(spinner, '模板下载失败');
       throw error;
     }
-  }
-
-  /**
-   * 保存项目配置
-   * @param userInput 用户输入的配置
-   */
-  async saveConfig(userInput: UserInputConfig): Promise<void> {
-    const config = this.configManager.createDefaultConfig(
-      userInput.projectName,
-      {
-        gitBranch: userInput.gitBranch,
-        techStack: userInput.techStack,
-      }
-    );
-
-    await this.configManager.write(this.projectPath, config);
-    logger.debug('配置文件已保存');
   }
 
   /**
@@ -264,7 +194,7 @@ export class InitCommand {
    */
   outputSuccessMessage(): void {
     logger.newline();
-    logger.success(MSG_INIT_SUCCESS);
+    logger.success('项目初始化完成！');
     logger.newline();
     logger.divider();
     logger.newline();
@@ -294,17 +224,14 @@ export class InitCommand {
         return 1;
       }
 
-      // 交互式引导
-      const userInput = await this.promptConfig();
+      logger.title('初始化 ideal-cli 工作流配置');
+      logger.newline();
 
       // 创建目录结构
       await this.createDirectoryStructure();
 
-      // 应用模板
-      await this.applyTemplate(userInput);
-
-      // 保存配置
-      await this.saveConfig(userInput);
+      // 下载并应用模板
+      await this.downloadAndApplyTemplate();
 
       // 输出成功消息
       this.outputSuccessMessage();

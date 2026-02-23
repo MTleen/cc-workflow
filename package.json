@@ -1,6 +1,6 @@
 {
-  "name": "ideal-cli",
-  "version": "1.0.0",
+  "name": "@mathripper/ideal-cli",
+  "version": "1.0.2",
   "description": "CLI tool for initializing ideal-lab development workflow",
   "main": "dist/index.js",
   "bin": {
