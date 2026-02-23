@@ -1,10 +1,10 @@
 ---
 name: ideal-wiki
-description: Use when P14 deployment is completed, creating wiki documentation from scratch, OR user explicitly requests wiki generation. Triggers for new projects, post-deployment updates, or explicit wiki documentation requests.
+description: Use when P12 测试评审 is completed, creating wiki documentation from scratch, OR user explicitly requests wiki generation. Triggers for new projects, post-deployment updates, or explicit wiki documentation requests.
 agents: [tech-writer, dev, qa]
 ---
 
-# ideal-wiki（P15 维基更新）
+# ideal-wiki（P13 维基更新）
 
 ## Overview
 

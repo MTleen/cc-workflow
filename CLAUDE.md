@@ -39,11 +39,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Agent 定义"如何思考"
 - Skill 定义"做什么"和"输出什么"
 
-### 16 阶段流程（P1-P16）
+### 15 阶段流程（P1-P15）
 - **规划阶段**：P1 需求编写 → P2 需求评审 → P3 技术方案 → P4 方案评审
 - **准备阶段**：P5 计划生成 → P6 计划评审 → P7 测试用例 → P8 用例评审
 - **执行阶段**：P9 开发执行 → P10 代码评审 → P11 测试执行 → P12 测试评审
-- **收尾阶段**：P13 上线评审 → P14 部署上线 → P15 维基更新 → P16 维基评审
+- **收尾阶段**：P13 维基更新 → P14 维基评审 → P15 成果提交
+
+> 注：上线部署由 CI/CD 自动化完成，P15 成果提交后自动触发 CI/CD 流水线。
 
 ## 文档结构
 
@@ -66,7 +68,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 │   ├── ideal-dev-exec/         # P9 (dev)
 │   ├── ideal-code-review/      # P9.1 (dev, architect)
 │   ├── ideal-test-exec/        # P11 (qa, dev)
-│   ├── ideal-wiki/             # P15 (tech-writer)
+│   ├── ideal-wiki/             # P13 (tech-writer)
 │   ├── ideal-flow-control/     # 全流程
 │   └── ideal-debugging/        # 调试 (dev)
 │
@@ -98,7 +100,7 @@ docs/                           # Obsidian vault
 | architect | 架构师 | P3, P5 |
 | dev | 开发工程师 | P9, P11 |
 | qa | 测试工程师 | P7, P11 |
-| tech-writer | 技术文档撰写 | P15 |
+| tech-writer | 技术文档撰写 | P13 |
 
 ## Skills 索引
 
@@ -111,7 +113,7 @@ docs/                           # Obsidian vault
 | `ideal-dev-exec` | P9 | dev | 开发执行（使用故事文件） |
 | `ideal-code-review` | P9.1 | dev, architect | 代码审查 |
 | `ideal-test-exec` | P11 | qa, dev | 测试执行 |
-| `ideal-wiki` | P15 | tech-writer | 维基更新 |
+| `ideal-wiki` | P13 | tech-writer | 维基更新 |
 | `ideal-debugging` | - | dev | 系统化调试 |
 
 ## 故事文件机制
@@ -168,6 +170,20 @@ stories_dir: docs/迭代/{需求名}/stories/
 3. **故事文件位置**：`docs/迭代/{需求名}/stories/`
 4. **文档格式**：全量 Markdown
 5. **Bug 管理**：直接在 GitLab Issue
+6. **Skill 创建和修改**：所有 Skill 的创建和修改必须通过调用 `/writing-skills` 完成，确保 Skill 结构和规范的一致性
+7. **经验沉淀**：工作过程中遇到的问题、解决方案和最佳实践应及时更新到本文档，避免同类问题重复发生
+
+## 经验教训
+
+本节记录工作过程中遇到的问题及解决方案，持续更新。
+
+> 注：遇到新问题时，应在此处添加记录，格式如下：
+> - **问题**：描述遇到的问题
+> - **原因**：分析问题产生的原因
+> - **解决**：描述解决方案
+> - **预防**：说明如何避免再次发生
+
+（暂无记录，后续遇到问题时补充）
 
 ## 参考文档
 

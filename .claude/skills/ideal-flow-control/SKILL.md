@@ -1,13 +1,13 @@
 ---
 name: ideal-flow-control
-description: Use when managing workflow phase transitions and state control. Handles flow state file reading, validation, and updates for the 16-phase development workflow.
+description: Use when managing workflow phase transitions and state control. Handles flow state file reading, validation, and updates for the 15-phase development workflow.
 ---
 
 # ideal-flow-control（流程状态管理）
 
 ## Overview
 
-统一管理 16 阶段流程的状态，验证前置条件，触发阶段流转。
+统一管理 15 阶段流程的状态，验证前置条件，触发阶段流转。
 
 ## When to Use
 
@@ -24,7 +24,7 @@ description: Use when managing workflow phase transitions and state control. Han
 ```yaml
 ---
 requirement_name: {需求名称}
-current_phase: P1-P16
+current_phase: P1-P15
 status: pending|in_progress|completed|blocked|revision
 created_at: {创建时间}
 updated_at: {更新时间}
@@ -47,7 +47,7 @@ updated_at: {更新时间}
 | 规划阶段 | P1-P4 | Claude + 人工 | 需求启动 |
 | 准备阶段 | P5-P8 | Claude + 人工 | P4 通过 |
 | 执行阶段 | P9-P12 | Claude + 人工 | P8 通过 |
-| 收尾阶段 | P13-P16 | 人工 + 自动 + Claude | P12 通过 |
+| 收尾阶段 | P13-P15 | Claude + 人工 | P12 通过 |
 
 ## State Values
 
@@ -67,7 +67,7 @@ digraph phase_flow {
     P1 -> P2 -> P3 -> P4;
     P4 -> P5 -> P6 -> P7 -> P8;
     P8 -> P9 -> P10 -> P11 -> P12;
-    P12 -> P13 -> P14 -> P15 -> P16;
+    P12 -> P13 -> P14 -> P15;
 }
 ```
 
@@ -81,7 +81,7 @@ digraph phase_flow {
 | P7 | P6 completed | ideal-test-case |
 | P9 | P8 completed | ideal-dev-exec |
 | P11 | P10 completed | ideal-test-exec |
-| P15 | P14 completed | ideal-wiki |
+| P13 | P12 completed | ideal-wiki |
 
 ## Workflow
 

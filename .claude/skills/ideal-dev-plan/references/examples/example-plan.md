@@ -9,7 +9,7 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans
 
-**Goal:** 实现 CC-Workflow 自动化工作流平台的 7 个待开发 Skills，完成文档驱动的 16 阶段流程自动化系统。
+**Goal:** 实现 CC-Workflow 自动化工作流平台的 7 个待开发 Skills，完成文档驱动的 15 阶段流程自动化系统。
 
 **Architecture:** 采用 Superpowers 模式，每个 Skill 包含 SKILL.md（核心指令）、references/（模板和示例）、scripts/（辅助脚本）。系统通过 Markdown 文档管理流程状态，Claude Code 通过 skills 执行各阶段任务。
 
@@ -26,7 +26,7 @@
 | M3: ideal-test-case | 6 | P0 | P7 测试用例生成 |
 | M4: ideal-dev-exec | 7 | P0 | P9 开发执行 |
 | M5: ideal-test-exec | 6 | P0 | P11 测试执行 |
-| M6: ideal-wiki | 6 | P0 | P15 维基更新 |
+| M6: ideal-wiki | 6 | P0 | P13 维基更新 |
 | M7: ideal-flow-control | 6 | P1 | 流程状态管理 |
 
 **总任务数：43 个原子任务**（含 7 个最佳实践调研任务）
@@ -132,7 +132,7 @@ ls -la .claude/skills/ideal-dev-solution/
 **步骤**：
 1. [ ] 创建文件 `references/templates/solution-template.md`
 2. [ ] 定义文档头部元数据（需求名称、关联需求、创建时间、当前阶段）
-3. [ ] 定义章节结构：方案概述、系统架构、16阶段流程设计、Skills设计、数据模型、接口设计、风险分析、实施计划、参考资料
+3. [ ] 定义章节结构：方案概述、系统架构、15阶段流程设计、Skills设计、数据模型、接口设计、风险分析、实施计划、参考资料
 4. [ ] 添加占位符说明
 5. [ ] 验证模板格式正确
 
@@ -681,7 +681,7 @@ ls -la .claude/skills/ideal-test-exec/
 
 ---
 
-## M6: ideal-wiki（P15 维基更新）
+## M6: ideal-wiki（P13 维基更新）
 
 ### 任务 M6-0: 最佳实践调研
 
@@ -965,14 +965,13 @@ python scripts/flow-state.py get-current-phase "docs/迭代/测试需求/流程�
 | 10 | P10 | 人工评审 | Approve |
 | 11 | P11 | ideal-test-exec | 测试报告 |
 | 12 | P12 | 人工评审 | 通过 |
-| 13 | P13 | 人工评审 | 上线许可 |
-| 14 | P14 | CI/CD | 部署完成 |
-| 15 | P15 | ideal-wiki | Wiki 文档 |
-| 16 | P16 | 人工评审 | 发布许可 |
+| 13 | P13 | ideal-wiki | Wiki 文档 |
+| 14 | P14 | 人工评审 | 发布许可 |
+| 15 | P15 | CI/CD | 成果提交 |
 
 ### 验收标准
 
-- [ ] 16 阶段流程完整跑通
+- [ ] 15 阶段流程完整跑通
 - [ ] 各阶段文档格式规范
 - [ ] 生成的代码通过测试
 - [ ] 流程状态正确流转

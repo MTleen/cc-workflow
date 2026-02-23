@@ -42,10 +42,9 @@ class FlowState:
         "P10": "代码评审",
         "P11": "测试执行",
         "P12": "测试评审",
-        "P13": "上线评审",
-        "P14": "部署上线",
-        "P15": "维基更新",
-        "P16": "维基评审"
+        "P13": "维基更新",
+        "P14": "维基评审",
+        "P15": "成果提交"
     }
 
     # 前置条件映射
@@ -55,6 +54,7 @@ class FlowState:
         "P7": "P6",
         "P9": "P8",
         "P11": "P10",
+        "P13": "P12",
         "P15": "P14"
     }
 
@@ -211,7 +211,7 @@ class FlowState:
 ### 收尾阶段
 | 阶段 | 状态 | 更新时间 |
 |------|------|----------|
-{generate_section(13, 16)}
+{generate_section(13, 15)}
 
 ---
 
@@ -233,7 +233,7 @@ class FlowState:
     def _get_trigger_message(self) -> str:
         """获取触发消息"""
         current = self.get_current_phase()
-        next_phase = f"P{int(current[1:]) + 1}" if current != "P16" else None
+        next_phase = f"P{int(current[1:]) + 1}" if current != "P15" else None
 
         if next_phase and next_phase in self.PHASES:
             return f"当前阶段: {current} - {self.PHASES[current]}\n\n将 `{next_phase} {self.PHASES[next_phase]}` 状态改为 `completed` 后，将触发下一阶段。"

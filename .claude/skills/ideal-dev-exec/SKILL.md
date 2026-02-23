@@ -10,6 +10,11 @@ agents: [implement, check, debug]
 
 执行编码计划，按 TDD 模式开发代码，创建 Git 分支和 Merge Request。
 
+**核心原则**：
+1. **强制环境隔离**：必须在 worktree 中执行开发
+2. **并行优先**：无依赖的任务必须并行执行
+3. **TDD 铁律**：测试先行，验证后完成
+
 ## Agents
 
 本 Skill 通过 Task 工具调用以下子代理：
@@ -69,6 +74,8 @@ Task(
 ║  NO PRODUCTION CODE WITHOUT A FAILING TEST FIRST                  ║
 ║  NO COMPLETION CLAIMS WITHOUT FRESH VERIFICATION EVIDENCE         ║
 ║  NO FIXES WITHOUT ROOT CAUSE INVESTIGATION FIRST                  ║
+║  NO DEVELOPMENT WITHOUT WORKTREE ISOLATION                        ║
+║  NO SEQUENTIAL EXECUTION OF INDEPENDENT TASKS                     ║
 ╚══════════════════════════════════════════════════════════════════╝
 ```
 
@@ -89,6 +96,14 @@ Task(
 
 遇到 bug/测试失败时，提出修复前必须完成根因调查。
 
+**HARD GATE 4: Worktree Isolation (新增)**
+
+在主仓库直接开发 → 停止，必须先创建 worktree
+
+**HARD GATE 5: Parallel Execution (新增)**
+
+无依赖任务顺序执行 → 必须改为并行
+
 ---
 
 ## Workflow
@@ -97,9 +112,13 @@ Task(
 digraph dev_exec_workflow {
     rankdir=TB;
 
-    start [label="Step 0: 读取配置"];
+    start [label="Step 0: 环境检查\n（强制）"];
+    worktree_check [label="在 Worktree 中?\n（强制检查）" shape=diamond];
+    create_worktree [label="创建 Worktree\n（调用 using-git-worktrees）"];
     story [label="Step 1: 加载故事文件\n（上下文隔离）"];
-    worktree [label="Step 2: 创建 Worktree\n（可选隔离）"];
+    parallel_check [label="分析依赖关系\n识别可并行任务" shape=diamond];
+    parallel_exec [label="并行执行\n（多个 Task 同时调用）"];
+    seq_exec [label="顺序执行"];
     baseline [label="Step 3: 验证干净基线"];
     batch [label="Step 4: 执行当前故事"];
     review [label="Step 5: 两阶段审查"];
@@ -108,7 +127,16 @@ digraph dev_exec_workflow {
     finish [label="Step 7: 分支完成"];
     end [label="完成"];
 
-    start -> story -> worktree -> baseline -> batch -> review;
+    start -> worktree_check;
+    worktree_check -> story [label="是"];
+    worktree_check -> create_worktree [label="否"];
+    create_worktree -> story;
+    story -> parallel_check;
+    parallel_check -> parallel_exec [label="有并行任务"];
+    parallel_check -> seq_exec [label="全部依赖"];
+    parallel_exec -> baseline;
+    seq_exec -> baseline;
+    baseline -> batch -> review;
     review -> more;
     more -> story [label="是"];
     more -> final [label="否"];
@@ -165,7 +193,43 @@ flowchart TD
 
 ## Step-by-Step Process
 
-### Step 0: 读取项目配置
+### Step 0: 环境检查（强制）
+
+**此步骤是强制的，不可跳过。**
+
+#### 0.1 检查是否在 Worktree 中
+
+执行以下命令检查当前环境：
+
+```bash
+git worktree list
+```
+
+分析输出：
+- 如果当前路径在 worktree 列表中 → 继续执行
+- 如果不在 worktree 中 → **必须创建 worktree**
+
+#### 0.2 创建 Worktree（如果需要）
+
+**如果不在 worktree 中，必须调用 `using-git-worktrees` Skill**：
+
+```
+Skill(
+    skill: "using-git-worktrees",
+    args: "{需求名称}"
+)
+```
+
+**红名单 - 停止并创建 Worktree**：
+- 当前在主仓库根目录
+- 当前在 main/master 分支
+- 当前路径不在 `git worktree list` 输出中
+
+**不创建 Worktree 的情况**：
+- 当前已在 worktree 中
+- 用户明确要求跳过（需记录原因）
+
+#### 0.3 读取项目配置
 
 1. 读取 `.claude/project-config.md`
 2. 获取 Git 配置：
@@ -174,7 +238,6 @@ flowchart TD
 3. 获取执行配置：
    - 测试命令
    - 构建命令
-   - 是否使用 worktree 隔离
 4. 如配置项缺失，使用默认值
 
 **默认值**:
@@ -186,86 +249,68 @@ flowchart TD
 | branch_prefix.refactor | refactor/ |
 | test_command | npm test |
 | build_command | npm run build |
-| use_worktree | false |
 
 ---
 
-### Step 1: 加载故事文件（上下文隔离）
+### Step 1: 加载故事文件并分析依赖（上下文隔离 + 并行分析）
 
-**重要**：上下文隔离是提高开发质量的关键。
+**重要**：此步骤同时完成上下文加载和并行执行分析。
 
-**加载步骤**：
+#### 1.1 读取故事索引
 
-1. **读取故事索引**
-   ```
-   docs/迭代/{需求名称}/stories/index.md
-   ```
-   - 确认当前应执行的故事
-   - 检查前置依赖是否完成
-
-2. **加载当前故事文件**
-   ```
-   docs/迭代/{需求名称}/stories/0XX-*.md
-   ```
-
-   故事文件包含：
-   - **上下文**：相关需求和技术方案片段（只加载这些，不要加载完整文档）
-   - **任务清单**：具体开发任务
-   - **验收标准**：完成条件
-
-3. **上下文边界**
-   - ✅ 只加载当前故事文件的内容
-   - ❌ 不要加载整个 P1/P3/P5 文档
-   - ✅ 故事文件已包含所需的上下文片段
-
-**如果故事文件不存在**：
-- 回退到加载完整 P5-编码计划.md
-- 提示用户建议在 P5 阶段生成故事文件
-
----
-
-### Step 2: 创建 Worktree（可选隔离）
-
-**何时使用 Worktree**：
-- 需要并行开发多个需求
-- 需要隔离开发环境
-- 主分支有未提交的变更
-
-**Worktree 创建流程**：
-
-```bash
-# 1. 检测项目名
-PROJECT_NAME=$(basename "$(git rev-parse --show-toplevel)")
-
-# 2. 确定目录
-# 优先级：.worktrees/ > worktrees/ > ~/.config/ideal/worktrees/
-if [ -d ".worktrees" ]; then
-    LOCATION=".worktrees"
-elif [ -d "worktrees" ]; then
-    LOCATION="worktrees"
-else
-    LOCATION="$HOME/.config/ideal/worktrees"
-fi
-
-# 3. 创建 worktree
-BRANCH_NAME="${branch_prefix.feature}${需求名称}"
-git worktree add "$LOCATION/$BRANCH_NAME" -b "$BRANCH_NAME"
-
-# 4. 切换到 worktree
-cd "$LOCATION/$BRANCH_NAME"
+```
+docs/迭代/{需求名称}/stories/index.md
 ```
 
-**安全验证**：
+从索引中提取：
+- 故事列表和状态
+- **依赖关系图**（用于并行分析）
+- 当前应执行的故事
 
-对于项目本地目录（.worktrees 或 worktrees）：
-```bash
-# 必须验证目录被忽略
-git check-ignore -q .worktrees || echo ".worktrees/" >> .gitignore
+#### 1.2 分析并行执行机会
+
+**解析依赖关系**：
+
+```mermaid
+flowchart LR
+    A[读取 stories/index.md] --> B[解析依赖关系]
+    B --> C[识别拓扑层级]
+    C --> D[标记可并行任务]
 ```
+
+**判断规则**：
+| 条件 | 执行策略 |
+|------|----------|
+| 多个故事无依赖 | **parallel** - 必须并行执行 |
+| 故事间有依赖 | **sequential** - 按依赖顺序执行 |
+| 混合依赖 | **hybrid** - 按拓扑层级分批执行 |
+
+**拓扑层级示例**：
+```
+第 1 层（可并行）: Story 001（无依赖）
+第 2 层（可并行）: Story 002, 003, 004（都只依赖 001）
+第 3 层: Story 005（依赖 002, 003, 004）
+```
+
+#### 1.3 加载当前故事文件
+
+```
+docs/迭代/{需求名称}/stories/0XX-*.md
+```
+
+故事文件包含：
+- **上下文**：相关需求和技术方案片段
+- **任务清单**：具体开发任务
+- **验收标准**：完成条件
+
+**上下文边界**：
+- ✅ 只加载当前故事文件的内容
+- ❌ 不要加载整个 P1/P3/P5 文档
+- ✅ 故事文件已包含所需的上下文片段
 
 ---
 
-### Step 3: 验证干净基线
+### Step 2: 验证干净基线
 
 **必须验证**：开发前确保基线测试通过
 
@@ -280,6 +325,64 @@ git check-ignore -q .worktrees || echo ".worktrees/" >> .gitignore
 1. 报告失败原因
 2. 等待人工介入
 3. 不继续开发
+
+---
+
+### Step 3: 并行执行调度（强制）
+
+**此步骤是强制的 - 无依赖任务必须并行执行。**
+
+#### 3.1 识别执行策略
+
+基于 Step 1.2 的依赖分析，选择执行策略：
+
+| 策略 | 条件 | 实现 |
+|------|------|------|
+| `team-parallel` | 2+ 个无依赖任务 | **多个 Task 并行调用** |
+| `subagent-sequential` | 全部有依赖 | 单 Task 顺序调用 |
+| `hybrid` | 混合依赖 | 按拓扑层级分批执行 |
+
+#### 3.2 并行执行实现
+
+**当存在可并行任务时，必须使用以下方式之一**：
+
+**方式 1：使用 dispatching-parallel-agents Skill（推荐）**
+
+```
+Skill(
+    skill: "dispatching-parallel-agents",
+    args: "Story 002, Story 003, Story 004"
+)
+```
+
+**方式 2：多个 Task 同时调用**
+
+```markdown
+在单个消息中同时调用多个 Task：
+
+Task(subagent_type: "implement", prompt: "执行 Story 002...")
+Task(subagent_type: "implement", prompt: "执行 Story 003...")
+Task(subagent_type: "implement", prompt: "执行 Story 004...")
+```
+
+**红名单 - 禁止顺序执行独立任务**：
+- 有多个无依赖故事但只调用一个 Task
+- 故事标注为 `parallel` 但仍顺序执行
+- 未分析依赖关系就顺序执行所有任务
+
+#### 3.3 拓扑层级执行
+
+对于混合依赖，按层级执行：
+
+```
+第 1 批（并行）: Story 001
+    ↓ 等待完成
+第 2 批（并行）: Story 002, 003, 004
+    ↓ 等待全部完成
+第 3 批: Story 005
+    ↓
+...
+```
 
 ---
 
@@ -528,12 +631,41 @@ Task(
 
 | 错误 | 正确做法 | HARD GATE |
 |------|----------|-----------|
-| 先写代码再写测试 | 必须先写测试 | ⚠️ 删除代码，重新开始 |
+| 先写代码再写测试 | 必须先写测试 | ⚠️ HARD GATE 1: 删除代码，重新开始 |
 | 测试没有先失败 | 确认测试正确性 | ⚠️ 验证失败原因 |
-| 无证据声称完成 | 必须有验证输出 | ⚠️ 不允许声称 |
+| 无证据声称完成 | 必须有验证输出 | ⚠️ HARD GATE 2: 不允许声称 |
 | 一次实现多个功能 | 每次只实现一个小功能 | - |
 | 跳过审查 | 每批次必须审查 | ⚠️ 必须通过两阶段审查 |
 | 未分析根因就修复 | 必须先调查根因 | ⚠️ HARD GATE 3 |
+| **在主仓库直接开发** | 必须在 worktree 中开发 | ⚠️ HARD GATE 4: 停止，创建 worktree |
+| **无依赖任务顺序执行** | 必须并行执行 | ⚠️ HARD GATE 5: 改为并行调用 |
+
+### Worktree 违规的红名单
+
+以下情况**必须停止并创建 worktree**：
+- 当前在主仓库根目录
+- 当前在 main/master 分支
+- `git worktree list` 不包含当前路径
+- 跳过 Step 0 环境检查
+
+**不创建 worktree 的唯一例外**：
+- 用户明确要求跳过（需记录原因到流程状态.md）
+
+### 并行执行违规的红名单
+
+以下情况**必须改为并行执行**：
+- 故事索引标注为 `parallel` 但顺序执行
+- 多个故事无依赖但只调用一个 Task
+- 未分析依赖关系就顺序执行所有任务
+- 在单个响应中只调用一个 Task 处理多个独立故事
+
+**正确的并行实现**：
+```markdown
+✅ 单个消息中同时调用多个 Task：
+Task(subagent_type: "implement", prompt: "执行 Story 002...")
+Task(subagent_type: "implement", prompt: "执行 Story 003...")
+Task(subagent_type: "implement", prompt: "执行 Story 004...")
+```
 
 ---
 

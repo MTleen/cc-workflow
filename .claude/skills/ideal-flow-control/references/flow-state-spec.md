@@ -13,7 +13,7 @@ docs/迭代/{需求名称}/流程状态.md
 ```markdown
 ---
 requirement_name: {需求名称}
-current_phase: P1-P16
+current_phase: P1-P15
 status: pending|in_progress|completed|blocked|revision
 created_at: {YYYY-MM-DD}
 updated_at: {YYYY-MM-DD}
@@ -54,10 +54,9 @@ updated_at: {YYYY-MM-DD}
 ### 收尾阶段
 | 阶段 | 状态 | 更新时间 |
 |------|------|----------|
-| P13 上线评审 | {状态} | {时间} |
-| P14 部署上线 | {状态} | {时间} |
-| P15 维基更新 | {状态} | {时间} |
-| P16 维基评审 | {状态} | {时间} |
+| P13 维基更新 | {状态} | {时间} |
+| P14 维基评审 | {状态} | {时间} |
+| P15 成果提交 | {状态} | {时间} |
 
 ---
 
@@ -81,7 +80,7 @@ updated_at: {YYYY-MM-DD}
 | 字段 | 类型 | 说明 |
 |------|------|------|
 | `requirement_name` | string | 需求名称 |
-| `current_phase` | string | 当前阶段（P1-P16） |
+| `current_phase` | string | 当前阶段（P1-P15） |
 | `status` | enum | 当前状态 |
 | `created_at` | date | 创建日期 |
 | `updated_at` | date | 最后更新日期 |
@@ -98,7 +97,7 @@ updated_at: {YYYY-MM-DD}
 
 ## 阶段定义
 
-### 16 阶段映射
+### 15 阶段映射
 
 | 阶段 | 名称 | 执行者 | 输入 | 输出 |
 |------|------|--------|------|------|
@@ -114,10 +113,11 @@ updated_at: {YYYY-MM-DD}
 | P10 | 代码评审 | 人工 | MR | Approve |
 | P11 | 测试执行 | Claude | P7 文档 | P11-测试报告.md |
 | P12 | 测试评审 | 人工 | P11 文档 | 通过/修复 |
-| P13 | 上线评审 | 人工 | 全部文档 | 上线许可 |
-| P14 | 部署上线 | 自动 | 代码 | 生产环境 |
-| P15 | 维基更新 | Claude | 代码+文档 | Wiki 文档 |
-| P16 | 维基评审 | 人工 | Wiki 文档 | 发布许可 |
+| P13 | 维基更新 | Claude | 代码+文档 | Wiki 文档 |
+| P14 | 维基评审 | 人工 | Wiki 文档 | 发布许可 |
+| P15 | 成果提交 | Claude | 全部通过 | 合并代码、删除 worktree、提交 PR |
+
+> 注：上线部署由 CI/CD 自动化完成，P15 成果提交后自动触发 CI/CD 流水线。
 
 ## 触发条件映射
 
@@ -135,7 +135,6 @@ updated_at: {YYYY-MM-DD}
 | P10 | MR Approve | P11 |
 | P11 | 报告生成完成 | P12 |
 | P12 | 状态改为 completed | P13 |
-| P13 | 状态改为 completed | P14 |
-| P14 | 部署完成 | P15 |
-| P15 | Wiki 生成完成 | P16 |
-| P16 | 状态改为 completed | 结束 |
+| P13 | 文档生成完成 | P14 |
+| P14 | 状态改为 completed | P15 |
+| P15 | 成果提交完成 | 结束（自动触发 CI/CD） |

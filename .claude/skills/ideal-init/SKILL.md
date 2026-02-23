@@ -11,7 +11,7 @@ CC-Workflow 项目初始化 Skill，实现分级配置架构：
 - **全局配置**：agents 和 skills 安装到 `~/.claude/`
 - **项目配置**：只保留 `project-config.md` 和文档结构
 
-**不在 16 阶段中** - 在开始任何需求之前独立调用。
+**不在 15 阶段中** - 在开始任何需求之前独立调用。
 
 ## HARD GATE
 

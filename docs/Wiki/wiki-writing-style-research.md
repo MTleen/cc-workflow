@@ -180,7 +180,7 @@ CC-Workflow Wiki 应按 Diataxis 框架组织：
 | 文档 | 类型 | 说明 |
 |------|------|------|
 | `quick-start.md` | Tutorial | 从零开始的完整流程 |
-| `workflow-overview.md` | Explanation | 理解 16 阶段流程 |
+| `workflow-overview.md` | Explanation | 理解 15 阶段流程 |
 | `user-roles.md` | Explanation | 理解角色分工 |
 | `glossary.md` | Reference | 术语查询 |
 | `faq.md` | How-to | 解决常见问题 |
