@@ -163,7 +163,7 @@ git status
 
 **IRON LAW: 禁止直接合并到主分支，必须通过 PR**
 
-**使用 GitHub CLI 创建 PR**：
+**方式一：使用 GitHub CLI 创建 PR**
 
 ```bash
 # 创建 PR
@@ -190,26 +190,23 @@ gh pr create --title "feat: {需求名称}" --body "$(cat <<'EOF'
 - [x] 文档已更新
 EOF
 )"
-
-# 记录 PR URL
-echo "PR 已创建: {PR-URL}"
 ```
 
-**或者使用 GitLab Merge Request**：
+**方式二：在网页上手动创建 PR**
 
-```bash
-# 推送后访问 GitLab 创建 MR
-# 或使用 glab CLI
-glab mr create --title "feat: {需求名称}" --description "{描述}"
-```
+1. 推送分支后，GitHub 会显示创建 PR 的链接
+2. 访问链接，填写 PR 标题和描述
+3. 点击 "Create pull request"
 
 **暂停等待用户合并 PR**：
 
 ```
 Pull Request 已创建：{PR-URL}
 
-请审查并合并 PR。合并后告诉我，我将继续完成归档工作。
+请审查并合并 PR。合并后告诉我"已合并"，我将继续完成归档工作。
 ```
+
+**注意**：GitHub PR 不会自动合并，需要你手动点击 "Merge" 按钮。
 
 ### Step 5: 合并后清理
 
