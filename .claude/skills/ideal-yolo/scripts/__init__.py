@@ -1,0 +1,197 @@
+"""
+YOLO 模式自动化执行引擎
+
+支持从 P3 到 P14 阶段的全自动执行。
+"""
+
+from .yolo_state import (
+    YoloStatus,
+    CircuitBreakerState,
+    AuditLogEntry,
+    YoloModeConfig,
+    load_yolo_state,
+    save_yolo_state,
+    update_phase_status,
+    set_yolo_status,
+    enable_yolo_mode,
+    disable_yolo_mode,
+    check_yolo_status,
+    add_audit_log,
+)
+
+from .yolo_logger import (
+    LogType,
+    LogStatus,
+    AuditLogEntry as LoggerAuditLogEntry,
+    write_audit_log,
+    generate_summary_log,
+    create_phase_log_entry,
+    create_review_log_entry,
+    create_error_log_entry,
+    finalize_log_entry,
+    get_phase_name,
+)
+
+from .yolo_control import (
+    ModeTransition,
+    TransitionResult,
+    can_transition,
+    transition_status,
+    enable_yolo,
+    disable_yolo,
+    pause_yolo,
+    resume_yolo,
+    complete_yolo,
+    error_yolo,
+    reset_yolo,
+    check_yolo_status as control_check_status,
+    should_ask_yolo,
+    get_yolo_summary,
+)
+
+from .yolo_review import (
+    ReviewPhase,
+    ReviewStatus,
+    ChecklistItem,
+    ReviewStandard,
+    ReviewResult,
+    get_review_standard,
+    apply_checklist,
+    calculate_score,
+    check_review_passed,
+    auto_review,
+    generate_review_log,
+    is_review_phase,
+)
+
+from .yolo_orchestrator import (
+    PhaseType,
+    PhaseConfig,
+    ExecutionContext,
+    PhaseResult,
+    get_phase_config,
+    get_next_phase,
+    is_review_phase as orch_is_review_phase,
+    is_execution_phase,
+    can_execute_phase,
+    execute_phase,
+    execute_chain,
+    create_execution_context,
+    get_execution_summary,
+)
+
+from .yolo_circuit import (
+    CircuitBreakerType,
+    CircuitCondition,
+    CircuitBreakerReport,
+    CircuitBreaker,
+    check_circuit,
+    trigger_circuit,
+    clear_circuit,
+    generate_circuit_report,
+    get_circuit_status,
+)
+
+from .yolo_resume import (
+    InterruptType,
+    RecoveryStatus,
+    InterruptInfo,
+    ValidationResult,
+    RecoveryResult,
+    detect_interrupt,
+    validate_state,
+    get_resume_phase,
+    resume_execution,
+    generate_recovery_report,
+    check_recovery_conditions,
+)
+
+__all__ = [
+    # yolo_state
+    'YoloStatus',
+    'CircuitBreakerState',
+    'AuditLogEntry',
+    'YoloModeConfig',
+    'load_yolo_state',
+    'save_yolo_state',
+    'update_phase_status',
+    'set_yolo_status',
+    'enable_yolo_mode',
+    'disable_yolo_mode',
+    'check_yolo_status',
+    'add_audit_log',
+    # yolo_logger
+    'LogType',
+    'LogStatus',
+    'write_audit_log',
+    'generate_summary_log',
+    'create_phase_log_entry',
+    'create_review_log_entry',
+    'create_error_log_entry',
+    'finalize_log_entry',
+    'get_phase_name',
+    # yolo_control
+    'ModeTransition',
+    'TransitionResult',
+    'can_transition',
+    'transition_status',
+    'enable_yolo',
+    'disable_yolo',
+    'pause_yolo',
+    'resume_yolo',
+    'complete_yolo',
+    'error_yolo',
+    'reset_yolo',
+    'should_ask_yolo',
+    'get_yolo_summary',
+    # yolo_review
+    'ReviewPhase',
+    'ReviewStatus',
+    'ChecklistItem',
+    'ReviewStandard',
+    'ReviewResult',
+    'get_review_standard',
+    'apply_checklist',
+    'calculate_score',
+    'check_review_passed',
+    'auto_review',
+    'generate_review_log',
+    'is_review_phase',
+    # yolo_orchestrator
+    'PhaseType',
+    'PhaseConfig',
+    'ExecutionContext',
+    'PhaseResult',
+    'get_phase_config',
+    'get_next_phase',
+    'is_execution_phase',
+    'can_execute_phase',
+    'execute_phase',
+    'execute_chain',
+    'create_execution_context',
+    'get_execution_summary',
+    # yolo_circuit
+    'CircuitBreakerType',
+    'CircuitCondition',
+    'CircuitBreakerReport',
+    'CircuitBreaker',
+    'check_circuit',
+    'trigger_circuit',
+    'clear_circuit',
+    'generate_circuit_report',
+    'get_circuit_status',
+    # yolo_resume
+    'InterruptType',
+    'RecoveryStatus',
+    'InterruptInfo',
+    'ValidationResult',
+    'RecoveryResult',
+    'detect_interrupt',
+    'validate_state',
+    'get_resume_phase',
+    'resume_execution',
+    'generate_recovery_report',
+    'check_recovery_conditions',
+]
+
+__version__ = '1.0.0'
