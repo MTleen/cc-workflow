@@ -69,6 +69,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 │   ├── ideal-code-review/      # P9.1 (dev, architect)
 │   ├── ideal-test-exec/        # P11 (qa, dev)
 │   ├── ideal-wiki/             # P13 (tech-writer)
+│   ├── ideal-delivery/         # P15 (成果提交)
 │   ├── ideal-flow-control/     # 全流程
 │   └── ideal-debugging/        # 调试 (dev)
 │
@@ -114,6 +115,7 @@ docs/                           # Obsidian vault
 | `ideal-code-review` | P9.1 | dev, architect | 代码审查 |
 | `ideal-test-exec` | P11 | qa, dev | 测试执行 |
 | `ideal-wiki` | P13 | tech-writer | 维基更新 |
+| `ideal-delivery` | P15 | - | 成果提交（PR + 归档） |
 | `ideal-debugging` | - | dev | 系统化调试 |
 
 ## 故事文件机制
@@ -183,7 +185,14 @@ stories_dir: docs/迭代/{需求名}/stories/
 > - **解决**：描述解决方案
 > - **预防**：说明如何避免再次发生
 
-（暂无记录，后续遇到问题时补充）
+### P15 成果提交未调用 skill
+
+- **问题**：P15 阶段直接执行 git merge/push，未调用 `ideal-delivery` skill
+- **原因**：`docs/Wiki/开发指南/Skills 索引.md` 缺少 `ideal-delivery` skill 条目，导致从上下文恢复时找不到应调用的 skill
+- **解决**：在 Skills 索引和 CLAUDE.md 中补充 `ideal-delivery` skill 说明
+- **预防**：
+  1. 新增 skill 后必须同步更新 Skills 索引和 CLAUDE.md
+  2. 从上下文恢复执行时，应先检查当前阶段对应的 skill
 
 ## 参考文档
 

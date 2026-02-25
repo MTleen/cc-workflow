@@ -22,6 +22,7 @@ tags: [reference, skills]
 | [ideal-code-review](#ideal-code-review) | P10 | dev, architect | 代码评审 |
 | [ideal-test-exec](#ideal-test-exec) | P11 | qa, dev | 测试执行 |
 | [ideal-wiki](#ideal-wiki) | P13 | tech-writer | 维基更新 |
+| [ideal-delivery](#ideal-delivery) | P15 | - | 成果提交 |
 | [ideal-flow-control](#ideal-flow-control) | 全流程 | - | 流程状态管理 |
 | [ideal-debugging](#ideal-debugging) | 调试 | dev | 系统化调试 |
 
@@ -38,6 +39,7 @@ tags: [reference, skills]
 | 执行代码评审 | `/ideal-code-review` |
 | 执行测试 | `/ideal-test-exec` |
 | 更新维基 | `/ideal-wiki` |
+| 提交成果 | `/ideal-delivery` |
 | 管理流程状态 | `/ideal-flow-control` |
 | 调试问题 | `/ideal-debugging` |
 
@@ -53,6 +55,7 @@ flowchart TB
     EXEC --> CR[ideal-code-review]
     CR --> TE[ideal-test-exec]
     TE --> WIKI[ideal-wiki]
+    WIKI --> DELIVERY[ideal-delivery]
 
     FLOW[ideal-flow-control] -.-> REQ
     FLOW -.-> SOL
@@ -61,6 +64,7 @@ flowchart TB
     FLOW -.-> EXEC
     FLOW -.-> TE
     FLOW -.-> WIKI
+    FLOW -.-> DELIVERY
 
     DEBUG[ideal-debugging] -.-> EXEC
 ```
@@ -361,6 +365,51 @@ flowchart TB
 - 前置条件验证：确保流程按顺序执行
 - 状态管理：统一管理各阶段状态
 - Skill 触发：自动触发下一阶段的 Skill
+
+---
+
+## ideal-delivery
+
+**阶段**：P15（成果提交）
+
+**触发条件**：
+- P14 维基评审已通过
+- 所有开发和测试工作已完成
+- 用户请求 "标记完成"、"提交成果"、"归档"
+
+**调用的 Agent**：无
+
+**核心功能**：
+1. 读取项目配置（主分支名、功能分支前缀）
+2. 确定目标迭代（如有多个进行中迭代）
+3. 提交所有代码变更
+4. 创建 Pull Request
+5. 等待 PR 合并
+6. 删除 feature 分支和 worktree
+7. 更新流程状态文件
+8. 重命名迭代目录（`[进行中]` → `[已完成]`）
+9. 提交状态更新
+10. 输出成果摘要
+
+**输入**：
+- 代码（已提交到功能分支）
+- `docs/迭代/{需求名称}/流程状态.md`
+
+**输出**：
+- Pull Request（已合并）
+- 更新后的流程状态文件
+- 成果摘要
+
+**关键特性**：
+- **IRON LAW**：禁止直接合并到主分支，必须通过 PR
+- 完整清理：删除 feature 分支、worktree
+- 状态归档：重命名迭代目录为 `[已完成]`
+
+**常见错误**：
+- 直接合并到主分支（必须创建 PR）
+- 忘记删除 feature 分支或 worktree
+- 跳过流程状态更新
+- 忘记重命名迭代目录
 
 ---
 
