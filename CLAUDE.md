@@ -174,6 +174,8 @@ stories_dir: docs/迭代/{需求名}/stories/
 5. **Bug 管理**：直接在 GitLab Issue
 6. **Skill 创建和修改**：所有 Skill 的创建和修改必须通过调用 `/writing-skills` 完成，确保 Skill 结构和规范的一致性
 7. **经验沉淀**：工作过程中遇到的问题、解决方案和最佳实践应及时更新到本文档，避免同类问题重复发生
+8. **Skill 文档同步**：新增或修改 Skill 后，必须同步更新 `docs/Wiki/开发指南/Skills 索引.md` 和 `CLAUDE.md` 中的 Skills 索引表
+9. **上下文恢复检查**：从对话摘要恢复执行时，必须先检查当前阶段对应的 Skill，确保调用正确的 Skill 而非直接执行操作
 
 ## 经验教训
 
