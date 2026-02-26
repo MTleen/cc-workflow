@@ -70,7 +70,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 │   ├── ideal-test-exec/        # P11 (qa, dev)
 │   ├── ideal-wiki/             # P13 (tech-writer)
 │   ├── ideal-delivery/         # P15 (成果提交)
-│   ├── ideal-flow-control/     # 全流程
+│   ├── ideal-flow-control/     # 全流程状态管理
+│   ├── ideal-yolo/             # YOLO 模式自动执行
 │   └── ideal-debugging/        # 调试 (dev)
 │
 └── project-config.md           # 项目配置
@@ -116,6 +117,8 @@ docs/                           # Obsidian vault
 | `ideal-test-exec` | P11 | qa, dev | 测试执行 |
 | `ideal-wiki` | P13 | tech-writer | 维基更新 |
 | `ideal-delivery` | P15 | - | 成果提交（PR + 归档） |
+| `ideal-flow-control` | 全流程 | - | 流程状态管理、评审通过检测 |
+| `ideal-yolo` | P3-P14 | - | YOLO 模式自动执行 |
 | `ideal-debugging` | - | dev | 系统化调试 |
 
 ## 故事文件机制
@@ -160,6 +163,68 @@ plan_review: pending    # 改为 approved 触发 P7
 stories_dir: docs/迭代/{需求名}/stories/
 ---
 ```
+
+## 流程控制规范
+
+### 阶段类型
+
+| 类型 | 阶段 | 说明 | 触发方式 |
+|------|------|------|----------|
+| **执行阶段** | P1, P3, P5, P7, P9, P11, P13, P15 | Claude 执行具体工作 | 调用对应 Skill |
+| **评审阶段** | P2, P4, P6, P8, P10, P12, P14 | 用户评审确认 | 用户说"通过"后触发 ideal-flow-control |
+
+### 评审通过后的处理
+
+**IRON LAW: 用户说"通过"后，必须调用 ideal-flow-control**
+
+```
+用户说"通过" / "approved"
+    ↓
+ideal-flow-control 检测当前阶段
+    ↓
+更新流程状态：当前阶段 = approved
+    ↓
+触发下一执行阶段的 Skill
+```
+
+### P2 评审通过后的 YOLO 模式询问
+
+**IRON LAW: P2 评审通过后必须询问是否启用 YOLO 模式**
+
+```
+P2 评审通过
+    ↓
+ideal-flow-control 询问：是否启用 YOLO 模式？
+    ↓
+┌────────────┴────────────┐
+↓                          ↓
+启用 YOLO               不启用
+↓                          ↓
+调用 ideal-yolo skill   触发 ideal-dev-solution (P3)
+↓
+自动执行 P3-P14（AI 自动评审）
+↓
+P15 等待用户确认
+```
+
+### YOLO 模式
+
+**启用条件**：P2 需求评审通过后，用户选择启用
+
+**执行范围**：P3-P14（自动执行，无需人工评审）
+
+**核心特性**：
+- AI 自动进行阶段评审并记录审计日志
+- 熔断机制：连续失败 3 次、测试通过率 < 80%、同一错误重复 5 次时自动暂停
+- 中断恢复：支持从断点继续执行
+
+**熔断条件**：
+
+| 异常类型 | 阈值 | 处理方式 |
+|----------|------|----------|
+| 评审失败 | 连续 3 次不通过 | 暂停执行，等待用户介入 |
+| 测试失败 | 通过率 < 80% | 暂停执行，等待用户介入 |
+| 重复错误 | 同一错误重复 5 次 | 暂停执行，等待用户介入 |
 
 ## 项目配置
 

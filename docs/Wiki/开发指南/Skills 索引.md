@@ -23,7 +23,8 @@ tags: [reference, skills]
 | [ideal-test-exec](#ideal-test-exec) | P11 | qa, dev | 测试执行 |
 | [ideal-wiki](#ideal-wiki) | P13 | tech-writer | 维基更新 |
 | [ideal-delivery](#ideal-delivery) | P15 | - | 成果提交 |
-| [ideal-flow-control](#ideal-flow-control) | 全流程 | - | 流程状态管理 |
+| [ideal-flow-control](#ideal-flow-control) | 全流程 | - | 流程状态管理、评审通过检测 |
+| [ideal-yolo](#ideal-yolo) | P3-P14 | - | YOLO 模式自动执行 |
 | [ideal-debugging](#ideal-debugging) | 调试 | dev | 系统化调试 |
 
 ## Skill 触发条件速查
@@ -41,6 +42,7 @@ tags: [reference, skills]
 | 更新维基 | `/ideal-wiki` |
 | 提交成果 | `/ideal-delivery` |
 | 管理流程状态 | `/ideal-flow-control` |
+| 启用 YOLO 模式 | `/ideal-yolo` |
 | 调试问题 | `/ideal-debugging` |
 
 ## Skill 依赖关系
@@ -65,6 +67,14 @@ flowchart TB
     FLOW -.-> TE
     FLOW -.-> WIKI
     FLOW -.-> DELIVERY
+    FLOW -.-> YOLO
+
+    YOLO[ideal-yolo] --> SOL
+    YOLO --> PLAN
+    YOLO --> TC
+    YOLO --> EXEC
+    YOLO --> TE
+    YOLO --> WIKI
 
     DEBUG[ideal-debugging] -.-> EXEC
 ```
@@ -410,6 +420,48 @@ flowchart TB
 - 忘记删除 feature 分支或 worktree
 - 跳过流程状态更新
 - 忘记重命名迭代目录
+
+---
+
+## ideal-yolo
+
+**阶段**：P3-P14（YOLO 模式自动执行）
+
+**触发条件**：
+- P2 需求评审通过后，用户选择启用 YOLO 模式
+- ideal-flow-control 调用
+- 用户说"启用 YOLO 模式"
+
+**调用的 Agent**：无（编排其他 Skills）
+
+**核心功能**：
+1. 自动执行 P3-P14 阶段（无需人工评审）
+2. AI 自动进行阶段评审
+3. 记录审计日志
+4. 熔断机制：异常检测自动暂停
+5. 中断恢复：支持断点续传
+
+**输入**：
+- `docs/迭代/{需求名称}/流程状态.md`（P2 已通过）
+- 需求文档
+
+**输出**：
+- P3-P14 所有阶段产物
+- 审计日志（`docs/迭代/{需求名}/yolo-logs/`）
+- 更新后的流程状态文件
+
+**关键特性**：
+- **自动执行**：依次调用 ideal-dev-solution → ideal-dev-plan → ideal-test-case → ideal-dev-exec → ideal-test-exec → ideal-wiki
+- **自动评审**：AI 自动评审 P4, P6, P8, P10, P12, P14
+- **熔断机制**：连续失败 3 次、测试通过率 < 80%、同一错误重复 5 次时暂停
+
+**熔断条件**：
+
+| 异常类型 | 阈值 | 处理方式 |
+|----------|------|----------|
+| 评审失败 | 连续 3 次不通过 | 暂停执行，等待用户介入 |
+| 测试失败 | 通过率 < 80% | 暂停执行，等待用户介入 |
+| 重复错误 | 同一错误重复 5 次 | 暂停执行，等待用户介入 |
 
 ---
 
