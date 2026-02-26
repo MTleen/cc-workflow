@@ -17,7 +17,6 @@
 │
 ├── .claude/                       # Claude Code 相关
 │   ├── skills/                    # 定制化 skills（项目级）
-│   │   ├── ideal-brainstorm/      # 头脑风暴（通用）
 │   │   ├── ideal-requirement/     # 需求编写（通用）
 │   │   ├── ideal-dev-solution/    # 技术方案（开发领域）
 │   │   ├── ideal-dev-plan/        # 计划生成（开发领域）
