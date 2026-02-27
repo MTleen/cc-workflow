@@ -1,6 +1,6 @@
 ---
 name: ideal-flow-control
-description: Use when managing workflow phase transitions and state control. Handles flow state file reading, validation, and updates for the 15-phase development workflow.
+description: Use when managing workflow phase transitions and state control. Handles flow state file reading, validation, and updates for the 15-phase development workflow. Also handles review phase completion detection and YOLO mode triggering.
 ---
 
 # ideal-flow-control（流程状态管理）
@@ -9,12 +9,20 @@ description: Use when managing workflow phase transitions and state control. Han
 
 统一管理 15 阶段流程的状态，验证前置条件，触发阶段流转。
 
+**核心职责**：
+1. 管理流程状态文件的读写
+2. 处理评审阶段的通过检测
+3. P2 评审通过后询问是否启用 YOLO 模式
+4. 触发下一执行阶段的 Skill
+
 ## When to Use
 
 - 需要读取当前流程状态
 - 需要更新阶段状态
 - 需要验证阶段前置条件
 - 需要触发下一阶段
+- **用户完成评审并说"通过"/"approved"时**
+- **需要询问是否启用 YOLO 模式时**
 
 ## Flow State File
 
@@ -48,6 +56,13 @@ updated_at: {更新时间}
 | 准备阶段 | P5-P8 | Claude + 人工 | P4 通过 |
 | 执行阶段 | P9-P12 | Claude + 人工 | P8 通过 |
 | 收尾阶段 | P13-P15 | Claude + 人工 | P12 通过 |
+
+## 阶段类型
+
+| 类型 | 阶段 | 说明 | 触发方式 |
+|------|------|------|----------|
+| **执行阶段** | P1, P3, P5, P7, P9, P11, P13, P15 | Claude 执行具体工作 | 调用对应 Skill |
+| **评审阶段** | P2, P4, P6, P8, P10, P12, P14 | 用户评审确认 | 用户说"通过"后触发 ideal-flow-control |
 
 ## State Values
 
@@ -104,6 +119,51 @@ digraph flow_control {
 }
 ```
 
+## 评审通过处理流程
+
+当用户对评审阶段说"通过"/"approved"时，执行以下流程：
+
+```mermaid
+flowchart TD
+    A[用户说"通过"] --> B[读取流程状态]
+    B --> C{当前阶段?}
+    C -->|P2| D[更新 P2 = approved]
+    C -->|P4/P6/P8/P10/P12/P14| E[更新对应阶段 = approved]
+    D --> F{询问是否启用 YOLO 模式?}
+    F -->|是| G[调用 ideal-yolo skill]
+    F -->|否| H[触发 P3: ideal-dev-solution]
+    E --> I[触发下一执行阶段 Skill]
+    G --> J[YOLO 模式自动执行 P3-P14]
+    J --> K[P15 等待用户确认]
+```
+
+### P2 评审通过后的特殊处理
+
+**IRON LAW: P2 评审通过后必须询问是否启用 YOLO 模式**
+
+```markdown
+📋 P2 需求评审已通过！
+
+是否启用 YOLO 模式自动执行后续阶段？
+
+**YOLO 模式说明**：
+- 启用后，P3-P14 将自动执行，无需人工评审
+- AI 会自动进行阶段评审并记录审计日志
+- 熔断机制：连续失败、测试失败、重复错误时自动暂停
+- P15 成果提交仍需您确认
+
+请选择：
+1. 启用 YOLO 模式
+2. 继续传统人工评审流程
+```
+
+**用户选择处理**：
+
+| 选择 | 处理方式 |
+|------|----------|
+| 启用 YOLO 模式 | 调用 `ideal-yolo` skill，自动执行 P3-P14 |
+| 继续传统流程 | 触发 P3: `ideal-dev-solution`，等待用户逐阶段评审 |
+
 ## Step-by-Step Process
 
 ### Step 1: 读取流程状态
@@ -130,15 +190,17 @@ digraph flow_control {
 
 根据阶段调用对应的 skill：
 
-```
-P1 → ideal-requirement
-P3 → ideal-dev-solution
-P5 → ideal-dev-plan
-P7 → ideal-test-case
-P9 → ideal-dev-exec
-P11 → ideal-test-exec
-P15 → ideal-wiki
-```
+| 阶段 | Skill | 说明 |
+|------|-------|------|
+| P1 | ideal-requirement | 需求编写 |
+| P3 | ideal-dev-solution | 技术方案 |
+| P5 | ideal-dev-plan | 计划生成 |
+| P7 | ideal-test-case | 测试用例 |
+| P9 | ideal-dev-exec | 开发执行 |
+| P11 | ideal-test-exec | 测试执行 |
+| P13 | ideal-wiki | 维基更新 |
+| P15 | ideal-delivery | 成果提交 |
+| **YOLO** | ideal-yolo | 自动执行 P3-P14 |
 
 ### Step 4: 更新流程状态
 
@@ -184,6 +246,44 @@ P15 → ideal-wiki
 | 跳过阶段验证 | 必须验证前置条件 |
 | 状态值错误 | 使用标准状态值 |
 | 忘记更新时间戳 | 每次更新都更新 updated_at |
+| P2 通过后未询问 YOLO 模式 | 必须询问用户是否启用 YOLO 模式 |
+| 直接触发下一阶段而跳过评审 | 评审阶段必须等待用户确认"通过" |
+
+## YOLO 模式集成
+
+### 调用 ideal-yolo skill
+
+当用户选择启用 YOLO 模式时：
+
+```markdown
+Skill(
+    skill: "ideal-yolo",
+    args: "--state-file docs/迭代/{需求名称}/流程状态.md"
+)
+```
+
+### ideal-yolo skill 职责
+
+| 职责 | 说明 |
+|------|------|
+| 状态管理 | 更新 `yolo_mode.enabled: true` |
+| 自动执行 | 依次执行 P3-P14 阶段 |
+| 自动评审 | AI 自动进行阶段评审 |
+| 审计日志 | 记录执行过程到 `yolo-logs/` |
+| 熔断检测 | 检测异常并自动暂停 |
+| 中断恢复 | 支持从中断点继续执行 |
+
+### YOLO 模式下的流程状态
+
+```yaml
+yolo_mode:
+  enabled: true
+  status: in_progress    # pending | in_progress | paused | completed | error
+  start_time: "2026-02-24T10:00:00Z"
+  last_update: "2026-02-24T10:30:00Z"
+  completed_phases: [P3, P4, P5]
+  current_attempt: 1
+```
 
 ## References
 

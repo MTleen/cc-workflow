@@ -1,8 +1,40 @@
+---
+name: ideal-yolo
+description: Use when user enables YOLO mode after P2 review approval. Automatically executes P3-P14 phases with AI-powered reviews, circuit breaker, and interrupt recovery.
+---
+
 # ideal-yolo Skill
 
 ## 概述
 
 YOLO 模式自动化执行引擎，支持从 P3 到 P14 阶段的全自动执行。
+
+## 触发条件
+
+- **由 ideal-flow-control 调用**：P2 评审通过后，用户选择启用 YOLO 模式
+- **用户手动调用**：`/ideal-yolo` 或说"启用 YOLO 模式"
+
+## 调用方式
+
+### 由 ideal-flow-control 调用
+
+```markdown
+当用户在 P2 评审通过后选择"启用 YOLO 模式"时：
+
+Skill(
+    skill: "ideal-yolo"
+)
+```
+
+### 用户手动调用
+
+```bash
+/ideal-yolo
+```
+
+或说：
+- "启用 YOLO 模式"
+- "开始自动执行"
 
 ## 功能
 
@@ -16,14 +48,44 @@ YOLO 模式自动化执行引擎，支持从 P3 到 P14 阶段的全自动执行
 
 ### 启用 YOLO 模式
 
-在 P2 评审通过后，系统会询问是否启用 YOLO 模式：
+在 P2 评审通过后，ideal-flow-control 会询问是否启用 YOLO 模式：
 
 ```
-用户选择 "是" → 启用 YOLO 模式
-用户选择 "否" → 继续传统人工评审流程
+📋 P2 需求评审已通过！
+
+是否启用 YOLO 模式自动执行后续阶段？
+
+1. 启用 YOLO 模式
+2. 继续传统人工评审流程
 ```
 
-### 命令
+```
+用户选择 "1" → 调用 ideal-yolo skill
+用户选择 "2" → 继续传统人工评审流程
+```
+
+### 执行流程
+
+```mermaid
+flowchart TD
+    A[ideal-yolo 启动] --> B[更新流程状态: yolo_mode.enabled = true]
+    B --> C[读取当前阶段]
+    C --> D{当前阶段 < P14?}
+    D -->|是| E[执行当前阶段 Skill]
+    E --> F[AI 自动评审]
+    F --> G{评审通过?}
+    G -->|是| H[更新阶段状态为 approved]
+    G -->|否| I{熔断检测}
+    I -->|触发熔断| J[暂停执行，通知用户]
+    I -->|未触发| K[记录评审意见，继续]
+    H --> L[记录审计日志]
+    K --> L
+    L --> C
+    D -->|否| M[YOLO 模式完成]
+    M --> N[通知用户进入 P15]
+```
+
+### 命令行工具
 
 ```bash
 # 启用 YOLO 模式
@@ -32,7 +94,7 @@ python3 .claude/skills/ideal-yolo/scripts/yolo_control.py --action enable --stat
 # 检查状态
 python3 .claude/skills/ideal-yolo/scripts/yolo_control.py --action status --state-file <path>
 
-# 恢复执行
+# 恢复执行（中断后）
 python3 .claude/skills/ideal-yolo/scripts/yolo_resume.py --action resume --state-file <path>
 ```
 
@@ -104,8 +166,38 @@ python3 .claude/skills/ideal-yolo/scripts/yolo_resume.py --action resume --state
 3. 自动重新启动 Ralph Loop，从上次中断点继续执行
 4. 重置熔断计数器
 
+## Ralph Loop 集成
+
+YOLO 模式通过 Ralph Loop 实现持续执行：
+
+```bash
+# Ralph Loop 位置
+.claude/ralph/ralph-loop.sh
+
+# 执行方式
+./.claude/ralph/ralph-loop.sh --state-file docs/迭代/{需求名}/流程状态.md
+```
+
+**Ralph Loop 职责**：
+- 持续调用 Claude Code 直到任务完成
+- 每次调用时传递当前阶段上下文
+- 处理中断和恢复
+
 ## 依赖
 
 - Python 3.8+
 - PyYAML
 - pytest（测试）
+
+## 与其他 Skill 的关系
+
+| Skill | 关系 |
+|-------|------|
+| ideal-flow-control | P2 通过后调用 ideal-yolo |
+| ideal-dev-solution | YOLO 模式下自动调用 (P3) |
+| ideal-dev-plan | YOLO 模式下自动调用 (P5) |
+| ideal-test-case | YOLO 模式下自动调用 (P7) |
+| ideal-dev-exec | YOLO 模式下自动调用 (P9) |
+| ideal-test-exec | YOLO 模式下自动调用 (P11) |
+| ideal-wiki | YOLO 模式下自动调用 (P13) |
+| ideal-delivery | YOLO 完成后等待用户确认 (P15) |
