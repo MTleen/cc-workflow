@@ -6,8 +6,6 @@ on:
       - 'feature/**'
       - 'docs/**'
       - 'fix/**'
-    branches-ignore:
-      - main
 
 permissions:
   contents: read
