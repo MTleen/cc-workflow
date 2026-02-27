@@ -186,6 +186,8 @@ git worktree list
 
 **IRON LAW: 必须先提交代码再创建 PR**
 
+**IRON LAW: 只在 P15 阶段才推送分支到远程，开发期间不要推送**
+
 ```bash
 # 检查未提交的变更
 git status
@@ -193,6 +195,9 @@ git status
 # 如果有变更，提交
 git add -A
 git commit -m "feat: {需求名称} 开发完成"
+
+# ⚠️ 只在 P15 阶段推送分支到远程
+# 开发期间（P9-P14）不要执行 git push
 git push origin {feature-branch}
 ```
 
