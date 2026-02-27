@@ -32,7 +32,7 @@ jobs:
           PR_EXISTS=$(gh pr list --head "${{ steps.branch.outputs.name }}" --state open --json number --jq 'length')
           echo "exists=$PR_EXISTS" >> $GITHUB_OUTPUT
 
-      - name: Generate PR title and body
+      - name: Generate PR content
         id: pr-content
         if: steps.check-pr.outputs.exists == '0'
         run: |
@@ -40,15 +40,37 @@ jobs:
           PR_TITLE=$(git log -1 --pretty=%s)
           echo "title=$PR_TITLE" >> $GITHUB_OUTPUT
 
+          # Get all commits in this branch vs main
+          COMMITS=$(git log main..HEAD --pretty=format:"- %s" 2>/dev/null || git log -1 --pretty=format:"- %s")
+
+          # Get changed files summary
+          CHANGED_FILES=$(git diff main...HEAD --stat 2>/dev/null | tail -1 || echo "N/A")
+
+          # Get file list
+          FILE_LIST=$(git diff main...HEAD --name-only 2>/dev/null | head -20 || echo "N/A")
+          FILE_COUNT=$(git diff main...HEAD --name-only 2>/dev/null | wc -l || echo "1")
+
           # Generate PR body
-          cat << 'EOF' > pr_body.md
+          cat << EOF > pr_body.md
           ## 变更概述
 
-          此 PR 由 GitHub Actions 自动创建。
+          $(echo "$PR_TITLE")
 
           ## 变更内容
 
-          请查看 commit 历史了解详细变更。
+          ### Commits
+
+          $COMMITS
+
+          ### 文件变更
+
+          共 ${FILE_COUNT} 个文件变更：
+
+          \`\`\`
+          $FILE_LIST
+          \`\`\`
+
+          $CHANGED_FILES
 
           ## 检查清单
 

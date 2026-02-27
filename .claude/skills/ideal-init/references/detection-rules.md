@@ -2,11 +2,11 @@
 
 本文档定义如何自动探测项目类型、语言、框架等信息。
 
+> 工作类型定义见 `work-types.md`
+
 ---
 
 ## 工作类型探测
-
-> 工作类型决定了各 Skill 读取哪些模板、执行什么逻辑
 
 ### 探测优先级
 
@@ -14,40 +14,64 @@
 |--------|----------|------|
 | 1 | 用户明确指定 | 用户在初始化时指定工作类型 |
 | 2 | 目录结构分析 | 根据项目特征自动判断 |
-| 3 | 默认值 | `software-dev`（软件开发） |
+| 3 | 询问用户 | 展示选项让用户选择或描述 |
+| 4 | 兜底方案 | 询问用户描述，生成合适的类型标识符 |
 
-### 自动判断规则
+### 探测流程
 
-| 条件 | 工作类型 |
-|------|----------|
-| 存在 `src/`、`package.json`、`go.mod` 等代码特征 | `software-dev` |
-| 存在 `docs/`、`*.md` 且无代码特征 | `doc-writing` |
-| 存在 `slides/`、`*.pptx` | `presentation` |
-| 存在 `*.tex`、论文模板 | `paper-writing` |
-| 存在投标相关目录/文件 | `bid-document` |
-| 无法判断 | 询问用户描述，直接使用用户指定的工作类型标识 |
+```dot
+digraph detection_flow {
+    rankdir=TB;
 
-### 支持的工作类型
+    start [label="开始探测"];
+    user_specified [label="用户指定类型?", shape=diamond];
+    use_user [label="使用用户指定类型"];
+    analyze [label="目录结构分析"];
+    match [label="匹配预设类型?", shape=diamond];
 
-| 工作类型 | 标识符 | 典型特征 |
-|----------|--------|----------|
-| 软件开发 | `software-dev` | src/, package.json, go.mod |
-| 文档撰写 | `doc-writing` | docs/, *.md（无代码） |
-| 汇报材料 | `presentation` | slides/, *.pptx |
-| 论文撰写 | `paper-writing` | *.tex, 论文模板 |
-| 专利申请 | `patent-filing` | 专利模板 |
-| 调研报告 | `research-report` | 调研目录结构 |
-| 项目申请书 | `project-proposal` | 申请书模板 |
-| 投标文件 | `bid-document` | 投标目录结构 |
-| 标书解析 | `bid-analysis` | 招标文件待分析 |
+    high_conf [label="置信度高?", shape=diamond];
+    confirm [label="直接使用，询问确认"];
+    ask_user [label="展示选项让用户选择/描述"];
+    record [label="记录到 project-config.md"];
+    done [label="完成"];
 
-### 未知工作类型处理
+    start -> user_specified;
+    user_specified -> use_user [label="是"];
+    user_specified -> analyze [label="否"];
+    analyze -> match;
+    match -> high_conf [label="是"];
+    match -> ask_user [label="否"];
+    high_conf -> confirm [label="是"];
+    high_conf -> ask_user [label="否"];
+    confirm -> record;
+    ask_user -> record;
+    use_user -> record;
+    record -> done;
+}
+```
 
-当预设类型都不匹配时：
-1. 询问用户描述工作类型（是什么类型的工作、主要产出、验证方式）
-2. 基于用户描述生成合适的工作类型标识符（如 `video-production`、`data-analysis` 等）
-3. 直接将标识符写入 `project-config.md` 的 `work_type` 字段
-4. **不使用 `custom` 作为标识符** - 是什么工作类型就用什么标识符
+### 特征检测规则
+
+| 检测项 | 规则 | 工作类型 |
+|--------|------|----------|
+| 代码文件 | 存在 src/, lib/, app/ 等代码目录 | software-dev |
+| 包管理 | 存在 package.json, go.mod, requirements.txt | software-dev |
+| 文档目录 | 存在 docs/ 且无代码特征 | doc-writing |
+| 幻灯片 | 存在 slides/, *.pptx, *.key | presentation |
+| LaTeX | 存在 *.tex, bib/ | paper-writing |
+| 专利模板 | 存在 权利要求书, 说明书 模板 | patent-filing |
+| 调研目录 | 存在 调研/, 问卷/, 分析报告 | research-report |
+| 申请书 | 存在 NSFC模板, 可行性报告 | project-proposal |
+| 投标目录 | 存在 投标/, 招标文件 | bid-document |
+| 招标文件 | 存在待分析的招标文件 | bid-analysis |
+
+### 置信度评估
+
+| 情况 | 置信度 | 处理方式 |
+|------|--------|----------|
+| 匹配单一类型且特征明显 | 高 | 直接使用，询问确认 |
+| 匹配多个类型 | 中 | 展示选项让用户选择 |
+| 无匹配 | 低 | 询问用户描述，生成类型标识符 |
 
 ---
 
@@ -56,7 +80,7 @@
 > 仅 `software-dev` 工作类型需要探测技术栈
 
 ```dot
-digraph detection {
+digraph tech_detection {
     rankdir=TB;
 
     start [label="开始探测"];
@@ -241,7 +265,7 @@ digraph detection {
 | 无法推断测试命令 | 设为空 | - |
 | 无法推断构建命令 | 设为空 | - |
 
-**重要**：所有探测失败情况都应在 Step 3 用户确认时允许修正。
+**重要**：所有探测失败情况都应在用户确认步骤时允许修正。
 
 ---
 
@@ -280,25 +304,10 @@ interface DetectionResult {
 
 ---
 
-## 各 Skill 如何使用 work_type
-
-`work_type` 记录在 `project-config.md` 中，各 Skill 读取后：
-
-| Skill | work_type 影响 |
-|-------|----------------|
-| ideal-requirement | 选择需求模板（software-feature.md / doc-requirement.md / presentation-requirement.md） |
-| ideal-dev-solution | 选择方案模板（solution.md / doc-outline.md / ppt-outline.md） |
-| ideal-dev-plan | 选择计划模板 |
-| ideal-test-case | 选择生成测试用例还是评审标准 |
-| ideal-test-exec | 选择运行测试脚本还是 LLM 角色模拟 |
-| ideal-wiki | 选择文档格式化方式 |
-
----
-
 ## 使用说明
 
 1. **按顺序检测**：从 Node.js → Python → Go → Java → Other
 2. **首次匹配即返回**：找到特征文件后立即识别语言类型
 3. **依赖分析**：读取依赖文件判断具体框架
 4. **提供默认值**：无法推断时使用合理的默认值
-5. **用户修正**：所有探测结果都应在 Step 3 展示给用户确认
+5. **用户修正**：所有探测结果都应展示给用户确认
