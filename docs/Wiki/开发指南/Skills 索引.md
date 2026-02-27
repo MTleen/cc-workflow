@@ -93,19 +93,37 @@ flowchart TB
 **调用的 Agent**：无
 
 **核心功能**：
-1. 检查全局配置（`~/.claude/`）
-2. 安装/更新全局 agents 和 skills
-3. 探测项目信息（语言、框架、Git 配置）
-4. 生成项目结构（`.claude/project-config.md`、`docs/` 目录）
+
+> **职责边界**：Skill 负责 AI 智能操作，CLI 负责机械操作
+
+| 功能 | 负责方 |
+|------|--------|
+| 全局资源下载 | CLI |
+| 目录结构创建 | CLI |
+| **已初始化检测** | **Skill** |
+| **项目探测** | **Skill** |
+| **配置生成** | **Skill** |
+| **CLAUDE.md 追加** | **Skill** |
+| **完整性校验** | **Skill** |
+
+**7 步流程**：
+1. 已初始化检测
+2. 项目探测（语言、框架、Git 等）
+3. 用户确认/修正
+4. 生成 `project-config.md`
+5. 追加 CLAUDE.md 工作流说明
+6. 完整性校验
+7. 输出初始化报告
 
 **输入**：项目目录路径
 
 **输出**：
 - `.claude/project-config.md`
-- `docs/Wiki/`
-- `docs/迭代/`
-- `docs/项目状态.md`
-- `CLAUDE.md`（如不存在）
+- `CLAUDE.md`（追加工作流说明）
+
+**相关命令**：
+- `ideal init`：CLI 命令，创建目录结构
+- `/ideal-init`：Skill 命令，执行智能配置
 
 ---
 

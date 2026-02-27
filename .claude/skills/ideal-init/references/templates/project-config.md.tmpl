@@ -1,3 +1,10 @@
+---
+project_name: {project_name}
+work_type: {work_type}
+created_date: {created_date}
+last_updated: {updated_date}
+---
+
 # 项目配置
 
 ## 项目元信息
@@ -5,109 +12,50 @@
 | 配置项 | 值 |
 |--------|-----|
 | 项目名称 | {project_name} |
-| 项目类型 | {project_type} |
-| 创建日期 | {created_date} |
-| 最后更新 | {updated_date} |
+| 工作类型 | {work_type} |
+| 初始化时间 | {init_date} |
+| 工作流版本 | {workflow_version} |
 
 ---
 
-## Git 配置
+## 工作类型说明
 
-### 分支策略
+> `work_type` 决定了各 Skill 读取哪些模板、执行什么逻辑
 
-| 配置项 | 值 |
-|--------|-----|
-| 默认分支 | {main_branch} |
-| 功能分支前缀 | feature/ |
-| 修复分支前缀 | fix/ |
-| 重构分支前缀 | refactor/ |
+### 当前工作类型：{work_type}
 
-### 提交规范
+{work_type_description}
 
-| 配置项 | 值 |
-|--------|-----|
-| 提交消息格式 | conventional |
-| 需要 GPG 签名 | false |
+### 各 Skill 行为差异
 
----
-
-## 执行配置
-
-### 命令映射
-
-| 命令类型 | 命令 |
-|----------|------|
-| 安装依赖 | {install_cmd} |
-| 构建 | {build_cmd} |
-| 测试 | {test_cmd} |
-| Lint | {lint_cmd} |
-| 格式化 | {format_cmd} |
-
-### 测试配置
-
-| 配置项 | 值 |
-|--------|-----|
-| 测试框架 | {test_framework} |
-| 覆盖率要求 | {coverage_requirement} |
-| 测试目录 | {test_dir} |
+| Skill | 软件开发 | 文档撰写 | 汇报材料 |
+|-------|----------|----------|----------|
+| ideal-requirement | 功能需求模板 | 文档需求模板 | 汇报需求模板 |
+| ideal-dev-solution | 技术方案 | 文档大纲 | PPT 大纲 |
+| ideal-test-case | 测试用例 | 评审标准 | 评审标准 |
+| ideal-test-exec | 运行测试脚本 | LLM 角色模拟 | LLM 演练模拟 |
 
 ---
 
-## 技术栈
+## 领域配置
 
-> 以下内容由 ideal-init 自动探测填充
-
-### 语言与运行时
-
-| 技术 | 版本 | 用途 |
-|------|------|------|
-| {language} | {language_version} | 主要开发语言 |
-
-### 框架与库
-
-| 技术 | 版本 | 用途 |
-|------|------|------|
-| {framework} | {framework_version} | {framework_purpose} |
-
-### 开发工具
-
-| 工具 | 版本 | 用途 |
-|------|------|------|
-| Claude Code | - | AI 辅助开发 |
+{domain_config_section}
 
 ---
 
-## 最佳实践
+## 工作流集成
 
-### 代码规范
+本项目已通过 `ideal-init` 接入 CC-Workflow 工作流体系。
 
-- **风格指南**: {style_guide}
-- **Linter 配置**: {linter_config}
-- **格式化配置**: {formatter_config}
+### 可用命令
 
-### 架构模式
+| 命令 | 说明 |
+|------|------|
+| `/ideal-requirement` | 开始新需求（P1） |
+| `/ideal-init` | 重新初始化项目配置 |
+| `ideal status` | 查看当前流程状态 |
 
-- **分层结构**: {architecture_pattern}
-- **模块划分**: {module_structure}
+### 相关文档
 
-### 测试实践
-
-- **测试策略**: {test_strategy}
-- **Mock 方式**: {mock_approach}
-
----
-
-## 部署配置
-
-### 环境
-
-| 环境名称 | 分支 | 描述 |
-|----------|------|------|
-| {env_name} | {env_branch} | {env_desc} |
-
-### CI/CD
-
-| 配置项 | 值 |
-|--------|-----|
-| 平台 | {ci_platform} |
-| 配置文件 | {ci_config} |
+- [CLAUDE.md](../CLAUDE.md) - 项目指令文件
+- 当前迭代状态：`docs/迭代/` 目录下各需求文件夹中的 `流程状态.md`
