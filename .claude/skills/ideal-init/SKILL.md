@@ -116,7 +116,9 @@ digraph init_skill_workflow {
 ### Step 4-5: 生成配置
 
 - 读取 `references/templates/project-config.md.tmpl`
-- 读取 `references/templates/CLAUDE.md.appendix.md`
+- 根据 CLAUDE.md 是否存在选择模板：
+  - **存在**：追加 `references/templates/CLAUDE.md.appendix.md` 到末尾
+  - **不存在**：使用 `references/templates/CLAUDE.md.tmpl` 生成新文件
 - 生成/更新文件
 
 ### Step 6-7: 校验和报告
@@ -130,9 +132,11 @@ digraph init_skill_workflow {
 
 | 文件 | 用途 |
 |------|------|
-| `references/detection-rules.md` | 项目类型探测规则 |
+| `references/work-types.md` | 工作类型定义 |
+| `references/detection-rules.md` | 项目探测规则 |
 | `references/templates/project-config.md.tmpl` | 项目配置模板 |
-| `references/templates/CLAUDE.md.appendix.md` | CLAUDE.md 追加内容模板 |
+| `references/templates/CLAUDE.md.tmpl` | 完整 CLAUDE.md 模板（用于新项目） |
+| `references/templates/CLAUDE.md.appendix.md` | CLAUDE.md 追加内容（用于已有项目） |
 
 ---
 
