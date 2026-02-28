@@ -1,6 +1,10 @@
 # Worktrees
 .worktrees/
 
+# 迭代目录（不上传到 Git，通过 Obsidian 共享）
+docs/迭代/
+docs/项目迭代/
+
 # Dependencies
 node_modules/
 

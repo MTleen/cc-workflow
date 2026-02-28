@@ -34,6 +34,9 @@ Requirement Collection Progress:
   - [ ] 0.1 Read CLAUDE.md or README.md
   - [ ] 0.2 Extract key information
   - [ ] 0.3 Display context summary
+- [ ] Step 0.5: Iteration Type ⚠️ REQUIRED
+  - [ ] 0.5.1 Ask user to select iteration type
+  - [ ] 0.5.2 Determine output directory
 - [ ] Step 1: Type Detection
 - [ ] Step 2: Template Processing
 - [ ] Step 3: Requirement Gathering
@@ -51,6 +54,9 @@ digraph requirement_workflow {
     "读取项目背景" [shape=box];
     "背景存在?" [shape=diamond];
     "询问项目背景" [shape=box];
+    "迭代类型?" [shape=diamond];
+    "个人迭代目录" [shape=box];
+    "项目迭代目录" [shape=box];
     "类型识别" [shape=box];
     "需求收集" [shape=box];
     "用户说直接生成?" [shape=diamond];
@@ -60,9 +66,13 @@ digraph requirement_workflow {
     "完成" [shape=doublecircle];
 
     "读取项目背景" -> "背景存在?";
-    "背景存在?" -> "类型识别" [label="是"];
+    "背景存在?" -> "迭代类型?" [label="是"];
     "背景存在?" -> "询问项目背景" [label="否"];
-    "询问项目背景" -> "类型识别";
+    "询问项目背景" -> "迭代类型?";
+    "迭代类型?" -> "个人迭代目录" [label="个人"];
+    "迭代类型?" -> "项目迭代目录" [label="项目"];
+    "个人迭代目录" -> "类型识别";
+    "项目迭代目录" -> "类型识别";
     "类型识别" -> "需求收集";
     "需求收集" -> "用户说直接生成?";
     "用户说直接生成?" -> "确认摘要" [label="是"];
@@ -118,6 +128,46 @@ digraph requirement_workflow {
 若项目根目录不存在上述文件：
 1. 直接进入类型识别阶段
 2. 在第一个问题中询问："请简要描述项目背景"
+
+## 0.5 Iteration Type
+
+**在开始需求收集之前，必须确定迭代类型**。
+
+### 0.5.1 迭代类型选项
+
+使用 AskUserQuestion 询问用户：
+
+| 类型 | 说明 | 目录位置 |
+|------|------|----------|
+| **个人迭代** | 个人开发工作、学习项目、临时调试 | `docs/迭代/` |
+| **项目迭代** | 团队协作、正式需求、需要共享进度 | `docs/项目迭代/` |
+
+**询问话术**：
+```
+这是个人迭代还是项目迭代？
+- 个人迭代：个人开发工作，不需要团队共享进度
+- 项目迭代：团队协作项目，需要共享进度和文档
+```
+
+### 0.5.2 目录位置确定
+
+根据用户选择确定输出目录：
+
+| 迭代类型 | 输出目录 | Git 跟踪 |
+|----------|----------|----------|
+| 个人迭代 | `docs/迭代/{YYYY-MM-DD}-[进行中]-{需求名称}/` | 否（.gitignore） |
+| 项目迭代 | `docs/项目迭代/{YYYY-MM-DD}-[进行中]-{需求名称}/` | 否（.gitignore，通过 Obsidian 共享） |
+
+**⚠️ 重要**：两种迭代目录都不被 Git 跟踪，通过 Obsidian 等工具实现多人协作共享。
+
+### 0.5.3 Red Flags - STOP
+
+You are ABOUT TO violate this rule if:
+- About to create iteration directory without asking iteration type
+- Thinking "it's always personal iteration"
+- User mentions "团队" or "协作" but you didn't ask about iteration type
+
+**If ANY red flag applies: Stop. Ask iteration type first.**
 
 ## The Iron Law
 
@@ -308,7 +358,7 @@ Task(
 **命名规范**：
 - 目录格式：`{YYYY-MM-DD}-{状态}-{需求名称}/`
 - 日期为需求提出日期
-- 状态标识：`[进行中]` 或 `[完成]`
+- 状态标识：`[进行中]` 或 `[已完成]`
 - 需求名称使用简短英文或中文，不含特殊字符
 
 **示例**：
@@ -319,9 +369,18 @@ Task(
 - 创建需求时：文件夹名称包含 `[进行中]`
 - P15 阶段完成后：重命名文件夹，将 `[进行中]` 改为 `[完成]`
 
-### 6.2 Create Files
+### 6.2 Determine Output Directory
 
-**输出路径**：`docs/迭代/{YYYY-MM-DD}-[进行中]-{需求名称}/`
+根据 Step 0.5 确定的迭代类型，选择输出目录：
+
+| 迭代类型 | 输出目录 | 说明 |
+|----------|----------|------|
+| 个人迭代 | `docs/迭代/` | 个人需求，不通过 Git 共享 |
+| 项目迭代 | `docs/项目迭代/` | 团队协作需求，通过 Obsidian 共享 |
+
+### 6.3 Create Files
+
+**输出路径**：`{输出目录}/{YYYY-MM-DD}-[进行中]-{需求名称}/`
 
 | 文件 | 说明 |
 |------|------|
